@@ -45,7 +45,10 @@ static IHashTable* createTable(int tableType) {
     if (tableType == 1) {
         return new OpenAddressingHashTable(OpenAddressingHashTable::Quadratic);
     }
-    return new AVLHashTable();
+    if (tableType == 2) {
+        return new AVLHashTable();
+    }
+    return new CuckooHashTable();
 }
 
 static const char* benchmarkFileName(int tableType) {
@@ -55,7 +58,10 @@ static const char* benchmarkFileName(int tableType) {
     if (tableType == 1) {
         return "benchmark_kwadratowa.csv";
     }
-    return "benchmark_avl.csv";
+    if (tableType == 2) {
+        return "benchmark_avl.csv";
+    }
+    return "benchmark_cuckoo.csv";
 }
 
 static const char* benchmarkTableName(int tableType) {
@@ -65,7 +71,10 @@ static const char* benchmarkTableName(int tableType) {
     if (tableType == 1) {
         return "Adresowanie kwadratowe";
     }
-    return "Lancuchowanie AVL";
+    if (tableType == 2) {
+        return "Lancuchowanie AVL";
+    }
+    return "Cuckoo hashing";
 }
 
 static long long measureInsert(int tableType, HashRecord* data, int size) {
@@ -113,7 +122,7 @@ void runBenchmarks() {
 
     saveSeedsFor100000();
 
-    for (int tableType = 0; tableType < 3; ++tableType) {
+    for (int tableType = 0; tableType < 4; ++tableType) {
         std::ofstream csv(benchmarkFileName(tableType));
         csv << "Operation,Size,AverageTime_ns\n";
         summary << benchmarkTableName(tableType) << "\n";
@@ -145,5 +154,5 @@ void runBenchmarks() {
         summary << "\n";
     }
 
-    std::cout << "Zapisano: pomiary.txt, benchmark_liniowa.csv, benchmark_kwadratowa.csv, benchmark_avl.csv, seedy_100000.txt\n";
+    std::cout << "Zapisano: pomiary.txt, benchmark_liniowa.csv, benchmark_kwadratowa.csv, benchmark_avl.csv, benchmark_cuckoo.csv, seedy_100000.txt\n";
 }
