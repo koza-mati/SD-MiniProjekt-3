@@ -117,4 +117,41 @@ private:
     bool isPrime(int value) const;
 };
 
+class CuckooHashTable : public IHashTable {
+public:
+    CuckooHashTable(int initialCapacity = 101);
+    ~CuckooHashTable();
+
+    bool insert(int key, int value);
+    bool remove(int key);
+    bool find(int key, int& value) const;
+    int returnSize() const;
+    void clear();
+    bool saveToCSV(const std::string& fileName) const;
+    bool loadFromCSV(const std::string& fileName);
+    const char* name() const;
+
+private:
+    struct Slot {
+        int key;
+        int value;
+        bool occupied;
+    };
+
+    Slot* first;
+    Slot* second;
+    int capacity;
+    int currentSize;
+
+    int hashFirst(int key) const;
+    int hashSecond(int key) const;
+    bool shouldGrow() const;
+    int maxKicks() const;
+    bool updateExisting(int key, int value);
+    void allocateTables(int newCapacity);
+    void rehash(int newCapacity);
+    int nextPrime(int value) const;
+    bool isPrime(int value) const;
+};
+
 #endif

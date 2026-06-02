@@ -544,3 +544,266 @@ bool AVLHashTable::isPrime(int value) const {
     }
     return true;
 }
+
+CuckooHashTable::CuckooHashTable(int initialCapacity)
+    : first(0), second(0), capacity(0), currentSize(0) {
+    allocateTables(nextPrime(initialCapacity));
+}
+
+CuckooHashTable::~CuckooHashTable() {
+    delete[] first;
+    delete[] second;
+}
+
+bool CuckooHashTable::insert(int key, int value) {
+    if (updateExisting(key, value)) {
+        return false;
+    }
+
+    if (shouldGrow()) {
+        rehash(nextPrime(capacity * 2 + 1));
+    }
+
+    int currentKey = key;
+    int currentValue = value;
+    int whichTable = 0;
+    int limit = maxKicks();
+
+    for (int kick = 0; kick < limit; ++kick) {
+        if (whichTable == 0) {
+            int index = hashFirst(currentKey);
+            if (!first[index].occupied) {
+                first[index].key = currentKey;
+                first[index].value = currentValue;
+                first[index].occupied = true;
+                ++currentSize;
+                return true;
+            }
+            int evictedKey = first[index].key;
+            int evictedValue = first[index].value;
+            first[index].key = currentKey;
+            first[index].value = currentValue;
+            currentKey = evictedKey;
+            currentValue = evictedValue;
+            whichTable = 1;
+        } else {
+            int index = hashSecond(currentKey);
+            if (!second[index].occupied) {
+                second[index].key = currentKey;
+                second[index].value = currentValue;
+                second[index].occupied = true;
+                ++currentSize;
+                return true;
+            }
+            int evictedKey = second[index].key;
+            int evictedValue = second[index].value;
+            second[index].key = currentKey;
+            second[index].value = currentValue;
+            currentKey = evictedKey;
+            currentValue = evictedValue;
+            whichTable = 0;
+        }
+    }
+
+    rehash(nextPrime(capacity * 2 + 1));
+    return insert(currentKey, currentValue);
+}
+
+bool CuckooHashTable::remove(int key) {
+    int indexFirst = hashFirst(key);
+    if (first[indexFirst].occupied && first[indexFirst].key == key) {
+        first[indexFirst].occupied = false;
+        --currentSize;
+        return true;
+    }
+
+    int indexSecond = hashSecond(key);
+    if (second[indexSecond].occupied && second[indexSecond].key == key) {
+        second[indexSecond].occupied = false;
+        --currentSize;
+        return true;
+    }
+
+    return false;
+}
+
+bool CuckooHashTable::find(int key, int& value) const {
+    int indexFirst = hashFirst(key);
+    if (first[indexFirst].occupied && first[indexFirst].key == key) {
+        value = first[indexFirst].value;
+        return true;
+    }
+
+    int indexSecond = hashSecond(key);
+    if (second[indexSecond].occupied && second[indexSecond].key == key) {
+        value = second[indexSecond].value;
+        return true;
+    }
+
+    return false;
+}
+
+int CuckooHashTable::returnSize() const {
+    return currentSize;
+}
+
+void CuckooHashTable::clear() {
+    for (int i = 0; i < capacity; ++i) {
+        first[i].occupied = false;
+        second[i].occupied = false;
+    }
+    currentSize = 0;
+}
+
+bool CuckooHashTable::saveToCSV(const std::string& fileName) const {
+    std::ofstream file(fileName.c_str());
+    if (!file.is_open()) {
+        return false;
+    }
+
+    file << "key,value\n";
+    for (int i = 0; i < capacity; ++i) {
+        if (first[i].occupied) {
+            file << first[i].key << "," << first[i].value << "\n";
+        }
+    }
+    for (int i = 0; i < capacity; ++i) {
+        if (second[i].occupied) {
+            file << second[i].key << "," << second[i].value << "\n";
+        }
+    }
+    return true;
+}
+
+bool CuckooHashTable::loadFromCSV(const std::string& fileName) {
+    std::ifstream file(fileName.c_str());
+    if (!file.is_open()) {
+        return false;
+    }
+
+    clear();
+    std::string line;
+    std::getline(file, line);
+    while (std::getline(file, line)) {
+        std::stringstream stream(line);
+        std::string keyText;
+        std::string valueText;
+        if (std::getline(stream, keyText, ',') && std::getline(stream, valueText, ',')) {
+            insert(std::atoi(keyText.c_str()), std::atoi(valueText.c_str()));
+        }
+    }
+    return true;
+}
+
+const char* CuckooHashTable::name() const {
+    return "Tablica mieszajaca - cuckoo hashing";
+}
+
+int CuckooHashTable::hashFirst(int key) const {
+    unsigned int mixed = static_cast<unsigned int>(key);
+    mixed *= 2654435761u;
+    return static_cast<int>(mixed % static_cast<unsigned int>(capacity));
+}
+
+int CuckooHashTable::hashSecond(int key) const {
+    unsigned int mixed = static_cast<unsigned int>(key);
+    mixed ^= mixed >> 16;
+    mixed *= 2246822519u;
+    mixed ^= mixed >> 13;
+    return static_cast<int>(mixed % static_cast<unsigned int>(capacity));
+}
+
+bool CuckooHashTable::shouldGrow() const {
+    return currentSize + 1 >= capacity;
+}
+
+int CuckooHashTable::maxKicks() const {
+    int limit = 8;
+    int value = capacity;
+    while (value > 1) {
+        value /= 2;
+        ++limit;
+    }
+    return limit;
+}
+
+bool CuckooHashTable::updateExisting(int key, int value) {
+    int indexFirst = hashFirst(key);
+    if (first[indexFirst].occupied && first[indexFirst].key == key) {
+        first[indexFirst].value = value;
+        return true;
+    }
+
+    int indexSecond = hashSecond(key);
+    if (second[indexSecond].occupied && second[indexSecond].key == key) {
+        second[indexSecond].value = value;
+        return true;
+    }
+
+    return false;
+}
+
+void CuckooHashTable::allocateTables(int newCapacity) {
+    capacity = newCapacity;
+    first = new Slot[capacity];
+    second = new Slot[capacity];
+    for (int i = 0; i < capacity; ++i) {
+        first[i].key = 0;
+        first[i].value = 0;
+        first[i].occupied = false;
+        second[i].key = 0;
+        second[i].value = 0;
+        second[i].occupied = false;
+    }
+}
+
+void CuckooHashTable::rehash(int newCapacity) {
+    Slot* oldFirst = first;
+    Slot* oldSecond = second;
+    int oldCapacity = capacity;
+
+    first = 0;
+    second = 0;
+    allocateTables(newCapacity);
+    currentSize = 0;
+
+    for (int i = 0; i < oldCapacity; ++i) {
+        if (oldFirst[i].occupied) {
+            insert(oldFirst[i].key, oldFirst[i].value);
+        }
+        if (oldSecond[i].occupied) {
+            insert(oldSecond[i].key, oldSecond[i].value);
+        }
+    }
+
+    delete[] oldFirst;
+    delete[] oldSecond;
+}
+
+int CuckooHashTable::nextPrime(int value) const {
+    if (value < 2) {
+        return 2;
+    }
+    while (!isPrime(value)) {
+        ++value;
+    }
+    return value;
+}
+
+bool CuckooHashTable::isPrime(int value) const {
+    if (value < 2) {
+        return false;
+    }
+    if (value == 2) {
+        return true;
+    }
+    if (value % 2 == 0) {
+        return false;
+    }
+    for (int i = 3; i * i <= value; i += 2) {
+        if (value % i == 0) {
+            return false;
+        }
+    }
+    return true;
+}
