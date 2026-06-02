@@ -6,11 +6,13 @@
 #include <random>
 #include <string>
 
+// Czyści stan strumienia wejściowego po błędnym odczycie i pomija resztę wiersza.
 static void clearInput() {
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
+// Wczytuje liczbę całkowitą, ponawiając próbę przy błędnym wejściu.
 static int readInt(const char* prompt) {
     int value;
     while (true) {
@@ -23,12 +25,15 @@ static int readInt(const char* prompt) {
     }
 }
 
+// Zapisuje bieżący stan struktury do pliku pomocniczego (autosave).
 static void autosave(IHashTable& table, const std::string& fileName) {
     if (!table.saveToCSV(fileName)) {
         std::cout << "Nie udalo sie wykonac autosave do pliku " << fileName << "\n";
     }
 }
 
+// Czyści strukturę i wypełnia ją podaną liczbą losowych par klucz-wartość.
+// Do losowania wykorzystywany jest generator Mersenne Twister (mt19937).
 static void generateRandom(IHashTable& table, int count) {
     table.clear();
 
@@ -37,11 +42,15 @@ static void generateRandom(IHashTable& table, int count) {
     std::uniform_int_distribution<int> keyDistribution(1, count * 10 + 100);
     std::uniform_int_distribution<int> valueDistribution(1, count * 10 + 100);
 
+    // Klucze muszą być unikalne - losujemy aż do osiągnięcia żądanego rozmiaru.
+    // Powtórzony klucz powoduje jedynie aktualizację wartości, więc rozmiar nie rośnie.
     while (table.returnSize() < count) {
         table.insert(keyDistribution(generator), valueDistribution(generator));
     }
 }
 
+// Obsługuje menu pojedynczej struktury. Po każdej operacji modyfikującej
+// wykonywany jest automatyczny zapis stanu do pliku pomocniczego.
 static void tableMenu(IHashTable& table, const std::string& manualFile, const std::string& autosaveFile) {
     bool running = true;
     while (running) {
@@ -112,6 +121,7 @@ static void tableMenu(IHashTable& table, const std::string& manualFile, const st
 }
 
 int main() {
+    // Cztery warianty tablicy mieszającej obsługiwane przez wspólny interfejs.
     OpenAddressingHashTable linearTable(OpenAddressingHashTable::Linear);
     OpenAddressingHashTable quadraticTable(OpenAddressingHashTable::Quadratic);
     AVLHashTable avlTable;
