@@ -1,13 +1,13 @@
 # SD-MiniProjekt-3
 
-Projekt z kursu Struktury Danych: tablice mieszajace w C++. Program udostepnia trzy implementacje tablicy mieszajacej, menu konsolowe oraz modul pomiarow wydajnosci zapisywanych do plikow CSV i TXT.
+Projekt z kursu Struktury Danych: tablice mieszajace w C++. Program udostepnia cztery implementacje tablicy mieszajacej, menu konsolowe oraz modul pomiarow wydajnosci zapisywanych do plikow CSV i TXT.
 
 ## Cel projektu
 
 Celem projektu jest:
 
 - implementacja tablic mieszajacych przechowujacych pary `key-value`,
-- porownanie trzech sposobow rozwiazywania kolizji,
+- porownanie czterech sposobow rozwiazywania kolizji,
 - przygotowanie jednej implementacji wykorzystujacej drzewo AVL,
 - obsluga podstawowych operacji przez wspolny interfejs,
 - wykonanie pomiarow czasu dzialania operacji dla roznych rozmiarow danych,
@@ -41,7 +41,7 @@ Katalog `include/` zawiera:
 Katalog `src/` zawiera:
 
 - `main.cpp` - punkt startowy programu, menu konsolowe, obsluga CSV z poziomu programu i generowanie danych losowych,
-- `hash_tables.cpp` - implementacje tablic mieszajacych: adresowanie liniowe, adresowanie kwadratowe i kubelki AVL,
+- `hash_tables.cpp` - implementacje tablic mieszajacych: adresowanie liniowe, adresowanie kwadratowe, kubelki AVL i cuckoo hashing,
 - `benchmark.cpp` - benchmarki operacji `insert` oraz `remove`, zapis wynikow do CSV i TXT.
 
 Pliki w katalogu glownym:
@@ -176,6 +176,35 @@ Zlozonosc:
 
 Przy dobrym rozkladzie funkcji mieszajacej `k` jest male, wiec operacje sa bardzo szybkie. Przy duzej liczbie kolizji AVL nadal utrzymuje uporzadkowana i zbalansowana strukture.
 
+## Implementacja: cuckoo hashing
+
+`CuckooHashTable` implementuje tablice mieszajaca w schemacie _cuckoo hashing_. Jest to wariant adresowania otwartego o odmiennej zasadzie dzialania niz probkowanie liniowe i kwadratowe: zamiast jednej tablicy i sekwencji probkowania uzywane sa dwie tablice oraz dwie niezalezne funkcje mieszajace.
+
+Kazdy klucz ma dokladnie dwie dozwolone pozycje:
+
+- `hashFirst(key)` - pozycja w pierwszej tablicy,
+- `hashSecond(key)` - pozycja w drugiej tablicy.
+
+Dzieki temu operacje `find` i `remove` sprawdzaja co najwyzej dwie komorki, niezaleznie od wypelnienia struktury, co daje gwarantowany koszt `O(1)` w najgorszym przypadku.
+
+Dzialanie operacji:
+
+- `insert` umieszcza element w pierwszej tablicy. Jesli komorka jest zajeta, dotychczasowy element zostaje "wyrzucony" (ang. _kick_) i przeniesiony na swoja alternatywna pozycje w drugiej tablicy. Proces przenoszenia powtarza sie naprzemiennie miedzy tablicami az do znalezienia wolnej komorki,
+- jezeli liczba przeniesien przekroczy ustalony limit (`maxKicks`, rosnacy logarytmicznie z pojemnoscia), oznacza to powstanie cyklu i wykonywany jest `rehash` z wieksza pojemnoscia oraz ponowne wstawienie elementu,
+- `remove` sprawdza obie pozycje klucza i zwalnia wlasciwa komorke,
+- `find` sprawdza obie pozycje klucza.
+
+Aby utrzymac skutecznosc przenoszen, struktura jest powiekszana przez `rehash`, gdy laczne wypelnienie obu tablic zbliza sie do polowy ich pojemnosci.
+
+Zlozonosc srednia:
+
+- `insert` - zamortyzowane `O(1)`,
+- `remove` - `O(1)` w najgorszym przypadku,
+- `find` - `O(1)` w najgorszym przypadku,
+- `returnSize` - `O(1)`,
+- `saveToCSV` - `O(capacity)`,
+- `loadFromCSV` - srednio `O(n)`.
+
 ## Menu programu
 
 Po uruchomieniu programu dostepne jest menu glowne:
@@ -183,7 +212,8 @@ Po uruchomieniu programu dostepne jest menu glowne:
 1. Tablica mieszajaca - adresowanie liniowe.
 2. Tablica mieszajaca - adresowanie kwadratowe.
 3. Tablica mieszajaca - lancuchowanie drzewami AVL.
-4. Badania wydajnosciowe i zapis CSV.
+4. Tablica mieszajaca - cuckoo hashing.
+5. Badania wydajnosciowe i zapis CSV.
 0. Wyjscie.
 
 W menu konkretnej struktury mozna:
@@ -201,13 +231,15 @@ Po operacjach modyfikujacych program automatycznie zapisuje stan pomocniczy:
 
 - `hash_liniowa_autosave.csv` dla adresowania liniowego,
 - `hash_kwadratowa_autosave.csv` dla adresowania kwadratowego,
-- `hash_avl_autosave.csv` dla tablicy z kubelkami AVL.
+- `hash_avl_autosave.csv` dla tablicy z kubelkami AVL,
+- `hash_cuckoo_autosave.csv` dla cuckoo hashing.
 
 Reczny zapis z menu tworzy:
 
 - `hash_liniowa.csv`,
 - `hash_kwadratowa.csv`,
-- `hash_avl.csv`.
+- `hash_avl.csv`,
+- `hash_cuckoo.csv`.
 
 ## Generowanie danych
 
@@ -259,6 +291,7 @@ Pliki wynikowe:
 - `benchmark_liniowa.csv` - wyniki dla adresowania liniowego,
 - `benchmark_kwadratowa.csv` - wyniki dla adresowania kwadratowego,
 - `benchmark_avl.csv` - wyniki dla tablicy z kubelkami AVL,
+- `benchmark_cuckoo.csv` - wyniki dla cuckoo hashing,
 - `seedy_100000.txt` - lista seedow dla rozmiaru 100000.
 
 Format plikow CSV z benchmarkami:
@@ -305,4 +338,4 @@ Git Bash / MSYS / podobne srodowisko:
 
 ## Podsumowanie
 
-Projekt realizuje trzy warianty tablic mieszajacych: adresowanie liniowe, adresowanie kwadratowe oraz tablice z kubelkami opartymi o drzewa AVL. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porownujace koszty operacji `insert` i `remove` dla duzych zestawow danych.
+Projekt realizuje cztery warianty tablic mieszajacych: adresowanie liniowe, adresowanie kwadratowe, tablice z kubelkami opartymi o drzewa AVL oraz cuckoo hashing. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porownujace koszty operacji `insert` i `remove` dla duzych zestawow danych.
