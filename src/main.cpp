@@ -115,6 +115,7 @@ int main() {
     OpenAddressingHashTable linearTable(OpenAddressingHashTable::Linear);
     OpenAddressingHashTable quadraticTable(OpenAddressingHashTable::Quadratic);
     AVLHashTable avlTable;
+    CuckooHashTable cuckooTable;
 
     bool running = true;
     while (running) {
@@ -122,7 +123,8 @@ int main() {
         std::cout << "1. Tablica mieszajaca - adresowanie liniowe\n";
         std::cout << "2. Tablica mieszajaca - adresowanie kwadratowe\n";
         std::cout << "3. Tablica mieszajaca - lancuchowanie drzewami AVL\n";
-        std::cout << "4. Badania wydajnosciowe i zapis CSV\n";
+        std::cout << "4. Tablica mieszajaca - cuckoo hashing\n";
+        std::cout << "5. Badania wydajnosciowe i zapis CSV\n";
         std::cout << "0. Wyjscie\n";
 
         int choice = readInt("Wybor: ");
@@ -133,6 +135,8 @@ int main() {
         } else if (choice == 3) {
             tableMenu(avlTable, "hash_avl.csv", "hash_avl_autosave.csv");
         } else if (choice == 4) {
+            tableMenu(cuckooTable, "hash_cuckoo.csv", "hash_cuckoo_autosave.csv");
+        } else if (choice == 5) {
             runBenchmarks();
         } else if (choice == 0) {
             running = false;
