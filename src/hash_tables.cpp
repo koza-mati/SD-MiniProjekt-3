@@ -3,8 +3,10 @@
 #include <cstdlib>
 #include <sstream>
 
+// ===========================================================================
+//  Adresowanie otwarte (próbkowanie liniowe i kwadratowe)
+// ===========================================================================
 
-// Konstruktor alokuje tablicę o pojemności będącej najbliższą liczbą pierwszą.
 OpenAddressingHashTable::OpenAddressingHashTable(ProbeMode mode, int initialCapacity)
     : probeMode(mode), table(0), capacity(0), currentSize(0), deletedCount(0) {
     allocateTable(nextPrime(initialCapacity));
@@ -14,31 +16,26 @@ OpenAddressingHashTable::~OpenAddressingHashTable() {
     delete[] table;
 }
 
-// Wstawia nową parę klucz-wartość albo aktualizuje wartość istniejącego klucza.
-// Zwraca true, gdy dodano nowy element, false, gdy nastąpiła aktualizacja.
+// Zwraca true, gdy dodano nowy element, false, gdy zaktualizowano istniejący klucz.
 bool OpenAddressingHashTable::insert(int key, int value) {
-    // Powiększenie tablicy, zanim współczynnik wypełnienia stanie się zbyt duży.
     if (shouldGrow()) {
         rehash(nextPrime(capacity * 2 + 1));
     }
 
     int baseIndex = hash(key);
-    int firstDeleted = -1;   // pierwszy napotkany nagrobek, w który można wstawić element
+    int firstDeleted = -1;   // pierwszy nagrobek na ścieżce, w który można wstawić element
 
     for (int attempt = 0; attempt < capacity; ++attempt) {
         int index = probeIndex(baseIndex, attempt);
-        // Klucz już istnieje - aktualizujemy wartość.
         if (table[index].state == Occupied && table[index].key == key) {
             table[index].value = value;
             return false;
         }
-        // Zapamiętujemy pierwszy nagrobek na ścieżce próbkowania.
         if (table[index].state == Deleted && firstDeleted == -1) {
             firstDeleted = index;
         }
-        // Pusta komórka oznacza koniec ścieżki - klucza nie ma w tablicy.
+        // Pusta komórka kończy ścieżkę próbkowania - klucza nie ma w tablicy.
         if (table[index].state == Empty) {
-            // Preferujemy ponowne wykorzystanie nagrobka, jeśli był wcześniej napotkany.
             int target = firstDeleted != -1 ? firstDeleted : index;
             table[target].key = key;
             table[target].value = value;
@@ -51,7 +48,6 @@ bool OpenAddressingHashTable::insert(int key, int value) {
         }
     }
 
-    // Cała tablica przejrzana - jeśli był nagrobek, wykorzystujemy go.
     if (firstDeleted != -1) {
         table[firstDeleted].key = key;
         table[firstDeleted].value = value;
@@ -61,13 +57,13 @@ bool OpenAddressingHashTable::insert(int key, int value) {
         return true;
     }
 
-    // Brak miejsca - powiększamy tablicę i ponawiamy wstawianie.
+    // Brak wolnego miejsca - powiększamy tablicę i ponawiamy wstawianie.
     rehash(nextPrime(capacity * 2 + 1));
     return insert(key, value);
 }
 
-// Usuwa parę o danym kluczu. Komórka jest oznaczana jako nagrobek (Deleted),
-// aby nie przerwać ścieżki próbkowania innych kluczy.
+// Komórka jest oznaczana jako nagrobek (Deleted), aby nie przerwać ścieżki
+// próbkowania innych kluczy.
 bool OpenAddressingHashTable::remove(int key) {
     int index = findSlot(key);
     if (index == -1) {
@@ -94,7 +90,6 @@ int OpenAddressingHashTable::returnSize() const {
     return currentSize;
 }
 
-// Czyści tablicę, ustawiając wszystkie komórki jako puste.
 void OpenAddressingHashTable::clear() {
     for (int i = 0; i < capacity; ++i) {
         table[i].state = Empty;
@@ -103,7 +98,6 @@ void OpenAddressingHashTable::clear() {
     deletedCount = 0;
 }
 
-// Zapisuje wyłącznie aktywne komórki w formacie key,value.
 bool OpenAddressingHashTable::saveToCSV(const std::string& fileName) const {
     std::ofstream file(fileName.c_str());
     if (!file.is_open()) {
@@ -119,7 +113,6 @@ bool OpenAddressingHashTable::saveToCSV(const std::string& fileName) const {
     return true;
 }
 
-// Odczytuje rekordy z pliku i odbudowuje tablicę przez kolejne wstawienia.
 bool OpenAddressingHashTable::loadFromCSV(const std::string& fileName) {
     std::ifstream file(fileName.c_str());
     if (!file.is_open()) {
@@ -128,7 +121,7 @@ bool OpenAddressingHashTable::loadFromCSV(const std::string& fileName) {
 
     clear();
     std::string line;
-    std::getline(file, line);   // pomijamy nagłówek
+    std::getline(file, line);   // nagłówek
     while (std::getline(file, line)) {
         std::stringstream stream(line);
         std::string keyText;
@@ -145,7 +138,6 @@ const char* OpenAddressingHashTable::name() const {
                                : "Tablica mieszajaca - adresowanie kwadratowe";
 }
 
-// Funkcja mieszająca: wartość bezwzględna klucza modulo pojemność tablicy.
 int OpenAddressingHashTable::hash(int key) const {
     long long normalized = key;
     if (normalized < 0) {
@@ -154,7 +146,6 @@ int OpenAddressingHashTable::hash(int key) const {
     return static_cast<int>(normalized % capacity);
 }
 
-// Wyznacza indeks komórki dla kolejnej próby zgodnie z trybem próbkowania.
 int OpenAddressingHashTable::probeIndex(int baseIndex, int attempt) const {
     if (probeMode == Linear) {
         return (baseIndex + attempt) % capacity;
@@ -162,16 +153,14 @@ int OpenAddressingHashTable::probeIndex(int baseIndex, int attempt) const {
     return (baseIndex + attempt + attempt * attempt) % capacity;
 }
 
-// Sprawdza, czy tablica powinna zostać powiększona. Pod uwagę brane są zarówno
-// aktywne elementy, jak i nagrobki. Próbkowanie kwadratowe wymaga niższego
-// wypełnienia, aby ścieżka próbkowania nie pomijała wolnych komórek.
+// Pod uwagę brane są aktywne elementy i nagrobki. Próbkowanie kwadratowe wymaga
+// niższego wypełnienia, aby sekwencja próbkowania nie pomijała wolnych komórek.
 bool OpenAddressingHashTable::shouldGrow() const {
     int used = currentSize + deletedCount;
     int limit = probeMode == Quadratic ? capacity / 2 : capacity * 7 / 10;
     return used + 1 >= limit;
 }
 
-// Alokuje nową tablicę o podanej pojemności i inicjalizuje wszystkie komórki.
 void OpenAddressingHashTable::allocateTable(int newCapacity) {
     capacity = newCapacity;
     table = new Entry[capacity];
@@ -182,8 +171,7 @@ void OpenAddressingHashTable::allocateTable(int newCapacity) {
     }
 }
 
-// Przebudowuje tablicę: tworzy większą tablicę i wstawia do niej ponownie
-// wszystkie aktywne elementy, pomijając nagrobki.
+// Tworzy większą tablicę i wstawia ponownie aktywne elementy, pomijając nagrobki.
 void OpenAddressingHashTable::rehash(int newCapacity) {
     Entry* oldTable = table;
     int oldCapacity = capacity;
@@ -202,13 +190,11 @@ void OpenAddressingHashTable::rehash(int newCapacity) {
     delete[] oldTable;
 }
 
-// Wyszukuje indeks komórki przechowującej aktywny klucz lub -1, gdy go brak.
 int OpenAddressingHashTable::findSlot(int key) const {
     int baseIndex = hash(key);
     for (int attempt = 0; attempt < capacity; ++attempt) {
         int index = probeIndex(baseIndex, attempt);
-        // Pusta komórka oznacza, że klucz nie występuje dalej na ścieżce.
-        if (table[index].state == Empty) {
+        if (table[index].state == Empty) {   // koniec ścieżki - klucza nie ma
             return -1;
         }
         if (table[index].state == Occupied && table[index].key == key) {
@@ -218,7 +204,6 @@ int OpenAddressingHashTable::findSlot(int key) const {
     return -1;
 }
 
-// Zwraca najbliższą liczbę pierwszą większą lub równą podanej wartości.
 int OpenAddressingHashTable::nextPrime(int value) const {
     if (value < 2) {
         return 2;
@@ -248,10 +233,9 @@ bool OpenAddressingHashTable::isPrime(int value) const {
 }
 
 // ===========================================================================
-//  Tablica mieszająca z łańcuchowaniem kubełkami w postaci drzew AVL
+//  Łańcuchowanie kubełkami w postaci drzew AVL
 // ===========================================================================
 
-// Konstruktor alokuje tablicę pustych kubełków o pojemności będącej liczbą pierwszą.
 AVLHashTable::AVLHashTable(int initialCapacity)
     : buckets(0), capacity(nextPrime(initialCapacity)), currentSize(0) {
     buckets = new Node*[capacity];
@@ -265,7 +249,6 @@ AVLHashTable::~AVLHashTable() {
     delete[] buckets;
 }
 
-// Wstawia parę do drzewa AVL wybranego kubełka.
 bool AVLHashTable::insert(int key, int value) {
     if (shouldGrow()) {
         rehash(nextPrime(capacity * 2 + 1));
@@ -280,7 +263,6 @@ bool AVLHashTable::insert(int key, int value) {
     return added;
 }
 
-// Usuwa węzeł o danym kluczu z drzewa AVL odpowiedniego kubełka.
 bool AVLHashTable::remove(int key) {
     bool removed = false;
     int index = hash(key);
@@ -299,7 +281,6 @@ int AVLHashTable::returnSize() const {
     return currentSize;
 }
 
-// Zwalnia wszystkie węzły we wszystkich kubełkach.
 void AVLHashTable::clear() {
     for (int i = 0; i < capacity; ++i) {
         clearNode(buckets[i]);
@@ -329,7 +310,7 @@ bool AVLHashTable::loadFromCSV(const std::string& fileName) {
 
     clear();
     std::string line;
-    std::getline(file, line);   // pomijamy nagłówek
+    std::getline(file, line);   // nagłówek
     while (std::getline(file, line)) {
         std::stringstream stream(line);
         std::string keyText;
@@ -345,7 +326,6 @@ const char* AVLHashTable::name() const {
     return "Tablica mieszajaca - lancuchowanie drzewami AVL";
 }
 
-// Funkcja mieszająca wybierająca kubełek dla danego klucza.
 int AVLHashTable::hash(int key) const {
     long long normalized = key;
     if (normalized < 0) {
@@ -354,7 +334,6 @@ int AVLHashTable::hash(int key) const {
     return static_cast<int>(normalized % capacity);
 }
 
-// Wysokość węzła; dla pustego poddrzewa przyjmujemy 0.
 int AVLHashTable::height(Node* node) const {
     return node ? node->height : 0;
 }
@@ -378,7 +357,6 @@ AVLHashTable::Node* AVLHashTable::createNode(int key, int value) {
     return node;
 }
 
-// Rotacja w prawo - przywraca równowagę przy przeciążeniu lewego poddrzewa.
 AVLHashTable::Node* AVLHashTable::rotateRight(Node* node) {
     Node* leftChild = node->left;
     Node* middle = leftChild->right;
@@ -391,7 +369,6 @@ AVLHashTable::Node* AVLHashTable::rotateRight(Node* node) {
     return leftChild;
 }
 
-// Rotacja w lewo - przywraca równowagę przy przeciążeniu prawego poddrzewa.
 AVLHashTable::Node* AVLHashTable::rotateLeft(Node* node) {
     Node* rightChild = node->right;
     Node* middle = rightChild->left;
@@ -404,7 +381,6 @@ AVLHashTable::Node* AVLHashTable::rotateLeft(Node* node) {
     return rightChild;
 }
 
-// Rekurencyjnie wstawia węzeł, a następnie przywraca równowagę drzewa AVL.
 AVLHashTable::Node* AVLHashTable::insertNode(Node* node, int key, int value, bool& added) {
     if (!node) {
         added = true;
@@ -416,8 +392,7 @@ AVLHashTable::Node* AVLHashTable::insertNode(Node* node, int key, int value, boo
     } else if (key > node->key) {
         node->right = insertNode(node->right, key, value, added);
     } else {
-        // Klucz już istnieje - aktualizujemy wartość bez dodawania węzła.
-        node->value = value;
+        node->value = value;   // klucz już istnieje - tylko aktualizacja wartości
         return node;
     }
 
@@ -425,17 +400,17 @@ AVLHashTable::Node* AVLHashTable::insertNode(Node* node, int key, int value, boo
     int nodeBalance = balance(node);
 
     // Cztery przypadki niezrównoważenia i odpowiadające im rotacje.
-    if (nodeBalance > 1 && key < node->left->key) {          // przypadek lewo-lewo
+    if (nodeBalance > 1 && key < node->left->key) {
         return rotateRight(node);
     }
-    if (nodeBalance < -1 && key > node->right->key) {        // przypadek prawo-prawo
+    if (nodeBalance < -1 && key > node->right->key) {
         return rotateLeft(node);
     }
-    if (nodeBalance > 1 && key > node->left->key) {          // przypadek lewo-prawo
+    if (nodeBalance > 1 && key > node->left->key) {
         node->left = rotateLeft(node->left);
         return rotateRight(node);
     }
-    if (nodeBalance < -1 && key < node->right->key) {        // przypadek prawo-lewo
+    if (nodeBalance < -1 && key < node->right->key) {
         node->right = rotateRight(node->right);
         return rotateLeft(node);
     }
@@ -443,7 +418,6 @@ AVLHashTable::Node* AVLHashTable::insertNode(Node* node, int key, int value, boo
     return node;
 }
 
-// Rekurencyjnie usuwa węzeł i przywraca równowagę drzewa AVL.
 AVLHashTable::Node* AVLHashTable::removeNode(Node* node, int key, bool& removed) {
     if (!node) {
         return 0;
@@ -455,15 +429,14 @@ AVLHashTable::Node* AVLHashTable::removeNode(Node* node, int key, bool& removed)
         node->right = removeNode(node->right, key, removed);
     } else {
         removed = true;
-        // Węzeł ma co najwyżej jedno dziecko - zastępujemy go tym dzieckiem.
         if (!node->left || !node->right) {
             Node* child = node->left ? node->left : node->right;
             delete node;
             return child;
         }
 
-        // Węzeł ma dwoje dzieci - zastępujemy go następnikiem (najmniejszy klucz
-        // w prawym poddrzewie), a następnie usuwamy następnik z prawego poddrzewa.
+        // Węzeł z dwojgiem dzieci zastępujemy następnikiem (najmniejszy klucz
+        // w prawym poddrzewie), który następnie usuwamy z prawego poddrzewa.
         Node* successor = minNode(node->right);
         node->key = successor->key;
         node->value = successor->value;
@@ -474,7 +447,6 @@ AVLHashTable::Node* AVLHashTable::removeNode(Node* node, int key, bool& removed)
     node->height = 1 + maxInt(height(node->left), height(node->right));
     int nodeBalance = balance(node);
 
-    // Przywrócenie równowagi po usunięciu - cztery możliwe przypadki.
     if (nodeBalance > 1 && balance(node->left) >= 0) {
         return rotateRight(node);
     }
@@ -493,7 +465,6 @@ AVLHashTable::Node* AVLHashTable::removeNode(Node* node, int key, bool& removed)
     return node;
 }
 
-// Zwraca węzeł o najmniejszym kluczu w poddrzewie (skrajnie lewy węzeł).
 AVLHashTable::Node* AVLHashTable::minNode(Node* node) const {
     Node* current = node;
     while (current && current->left) {
@@ -502,7 +473,6 @@ AVLHashTable::Node* AVLHashTable::minNode(Node* node) const {
     return current;
 }
 
-// Iteracyjne wyszukiwanie klucza w drzewie binarnym wyszukiwań.
 bool AVLHashTable::findNode(Node* node, int key, int& value) const {
     while (node) {
         if (key < node->key) {
@@ -517,7 +487,6 @@ bool AVLHashTable::findNode(Node* node, int key, int& value) const {
     return false;
 }
 
-// Rekurencyjnie zwalnia węzły poddrzewa (przejście postorder).
 void AVLHashTable::clearNode(Node* node) {
     if (!node) {
         return;
@@ -527,7 +496,6 @@ void AVLHashTable::clearNode(Node* node) {
     delete node;
 }
 
-// Zapisuje węzły w porządku in-order (rosnąco według klucza).
 void AVLHashTable::saveNode(Node* node, std::ofstream& file) const {
     if (!node) {
         return;
@@ -537,7 +505,6 @@ void AVLHashTable::saveNode(Node* node, std::ofstream& file) const {
     saveNode(node->right, file);
 }
 
-// Przenosi wszystkie elementy poddrzewa do innej tablicy mieszającej.
 void AVLHashTable::collectAndInsert(Node* node, AVLHashTable& target) const {
     if (!node) {
         return;
@@ -547,21 +514,19 @@ void AVLHashTable::collectAndInsert(Node* node, AVLHashTable& target) const {
     collectAndInsert(node->right, target);
 }
 
-// Przebudowa: tworzy nową tablicę kubełków i przenosi do niej wszystkie elementy,
-// a następnie przejmuje jej zasoby (technika kopiowania i zamiany wskaźników).
+// Przebudowa metodą kopiowania i zamiany: budujemy nową tablicę kubełków,
+// przenosimy do niej elementy, po czym przejmujemy jej zasoby.
 void AVLHashTable::rehash(int newCapacity) {
     AVLHashTable newTable(newCapacity);
     for (int i = 0; i < capacity; ++i) {
         collectAndInsert(buckets[i], newTable);
     }
 
-    // Zwalniamy stare drzewa i tablicę kubełków.
     for (int i = 0; i < capacity; ++i) {
         clearNode(buckets[i]);
     }
     delete[] buckets;
 
-    // Przejmujemy zasoby tymczasowej tablicy.
     buckets = newTable.buckets;
     capacity = newTable.capacity;
     currentSize = newTable.currentSize;
@@ -570,7 +535,7 @@ void AVLHashTable::rehash(int newCapacity) {
     newTable.currentSize = 0;
 }
 
-// Próg powiększenia: średnio około czterech elementów na kubełek.
+// Powiększenie przy średnio około czterech elementach na kubełek.
 bool AVLHashTable::shouldGrow() const {
     return currentSize > capacity * 4;
 }
@@ -604,10 +569,9 @@ bool AVLHashTable::isPrime(int value) const {
 }
 
 // ===========================================================================
-//  Tablica mieszająca w schemacie cuckoo hashing (dwie tablice, dwie funkcje)
+//  Cuckoo hashing (dwie tablice, dwie funkcje mieszające)
 // ===========================================================================
 
-// Konstruktor alokuje obie tablice o pojemności będącej liczbą pierwszą.
 CuckooHashTable::CuckooHashTable(int initialCapacity)
     : first(0), second(0), capacity(0), currentSize(0) {
     allocateTables(nextPrime(initialCapacity));
@@ -618,16 +582,11 @@ CuckooHashTable::~CuckooHashTable() {
     delete[] second;
 }
 
-// Wstawia parę klucz-wartość. Jeśli klucz już istnieje, aktualizuje wartość.
-// W przeciwnym razie umieszcza element, w razie potrzeby przenosząc (wyrzucając)
-// kolejne elementy między tablicami zgodnie z zasadą cuckoo hashing.
 bool CuckooHashTable::insert(int key, int value) {
-    // Aktualizacja istniejącego klucza nie zmienia rozmiaru struktury.
     if (updateExisting(key, value)) {
         return false;
     }
 
-    // Utrzymujemy współczynnik wypełnienia poniżej połowy, aby przenoszenia działały.
     if (shouldGrow()) {
         rehash(nextPrime(capacity * 2 + 1));
     }
@@ -637,10 +596,12 @@ bool CuckooHashTable::insert(int key, int value) {
     int whichTable = 0;          // 0 - tablica first, 1 - tablica second
     int limit = maxKicks();
 
+    // Zasada cuckoo: jeśli docelowa komórka jest zajęta, wyrzucamy jej element
+    // i przenosimy go na alternatywną pozycję w drugiej tablicy, powtarzając
+    // proces naprzemiennie aż do znalezienia wolnej komórki.
     for (int kick = 0; kick < limit; ++kick) {
         if (whichTable == 0) {
             int index = hashFirst(currentKey);
-            // Wolna komórka - umieszczamy element i kończymy.
             if (!first[index].occupied) {
                 first[index].key = currentKey;
                 first[index].value = currentValue;
@@ -648,14 +609,13 @@ bool CuckooHashTable::insert(int key, int value) {
                 ++currentSize;
                 return true;
             }
-            // Komórka zajęta - wyrzucamy dotychczasowy element i bierzemy go "do ręki".
             int evictedKey = first[index].key;
             int evictedValue = first[index].value;
             first[index].key = currentKey;
             first[index].value = currentValue;
             currentKey = evictedKey;
             currentValue = evictedValue;
-            whichTable = 1;   // wyrzucony element trafia do drugiej tablicy
+            whichTable = 1;
         } else {
             int index = hashSecond(currentKey);
             if (!second[index].occupied) {
@@ -671,17 +631,16 @@ bool CuckooHashTable::insert(int key, int value) {
             second[index].value = currentValue;
             currentKey = evictedKey;
             currentValue = evictedValue;
-            whichTable = 0;   // wyrzucony element trafia do pierwszej tablicy
+            whichTable = 0;
         }
     }
 
     // Przekroczenie limitu przeniesień oznacza cykl - powiększamy strukturę
-    // i ponawiamy wstawianie trzymanego w ręku elementu.
+    // i ponawiamy wstawianie trzymanego "w ręku" elementu.
     rehash(nextPrime(capacity * 2 + 1));
     return insert(currentKey, currentValue);
 }
 
-// Usuwa klucz, sprawdzając obie jego dozwolone pozycje.
 bool CuckooHashTable::remove(int key) {
     int indexFirst = hashFirst(key);
     if (first[indexFirst].occupied && first[indexFirst].key == key) {
@@ -700,7 +659,6 @@ bool CuckooHashTable::remove(int key) {
     return false;
 }
 
-// Wyszukuje klucz - wystarczy sprawdzić dwie pozycje, stąd koszt O(1).
 bool CuckooHashTable::find(int key, int& value) const {
     int indexFirst = hashFirst(key);
     if (first[indexFirst].occupied && first[indexFirst].key == key) {
@@ -721,7 +679,6 @@ int CuckooHashTable::returnSize() const {
     return currentSize;
 }
 
-// Czyści obie tablice, oznaczając wszystkie komórki jako wolne.
 void CuckooHashTable::clear() {
     for (int i = 0; i < capacity; ++i) {
         first[i].occupied = false;
@@ -730,7 +687,6 @@ void CuckooHashTable::clear() {
     currentSize = 0;
 }
 
-// Zapisuje aktywne komórki z obu tablic w formacie key,value.
 bool CuckooHashTable::saveToCSV(const std::string& fileName) const {
     std::ofstream file(fileName.c_str());
     if (!file.is_open()) {
@@ -759,7 +715,7 @@ bool CuckooHashTable::loadFromCSV(const std::string& fileName) {
 
     clear();
     std::string line;
-    std::getline(file, line);   // pomijamy nagłówek
+    std::getline(file, line);   // nagłówek
     while (std::getline(file, line)) {
         std::stringstream stream(line);
         std::string keyText;
@@ -775,14 +731,14 @@ const char* CuckooHashTable::name() const {
     return "Tablica mieszajaca - cuckoo hashing";
 }
 
-// Pierwsza funkcja mieszająca - mieszanie multiplikatywne dające pozycję w tablicy first.
+// Dwie niezależne funkcje mieszające (mieszanie multiplikatywne) wyznaczające
+// pozycje klucza w obu tablicach.
 int CuckooHashTable::hashFirst(int key) const {
     unsigned int mixed = static_cast<unsigned int>(key);
     mixed *= 2654435761u;
     return static_cast<int>(mixed % static_cast<unsigned int>(capacity));
 }
 
-// Druga, niezależna funkcja mieszająca dająca pozycję w tablicy second.
 int CuckooHashTable::hashSecond(int key) const {
     unsigned int mixed = static_cast<unsigned int>(key);
     mixed ^= mixed >> 16;
@@ -796,8 +752,8 @@ bool CuckooHashTable::shouldGrow() const {
     return currentSize + 1 >= capacity;
 }
 
-// Limit przeniesień rosnący logarytmicznie z pojemnością. Jego przekroczenie
-// traktujemy jako wystąpienie cyklu wymagającego przebudowy struktury.
+// Limit przeniesień rosnący logarytmicznie z pojemnością; jego przekroczenie
+// traktujemy jako wystąpienie cyklu wymagającego przebudowy.
 int CuckooHashTable::maxKicks() const {
     int limit = 8;
     int value = capacity;
@@ -808,8 +764,6 @@ int CuckooHashTable::maxKicks() const {
     return limit;
 }
 
-// Jeśli klucz znajduje się na jednej z dwóch dozwolonych pozycji, aktualizuje
-// jego wartość i zwraca true; w przeciwnym razie zwraca false.
 bool CuckooHashTable::updateExisting(int key, int value) {
     int indexFirst = hashFirst(key);
     if (first[indexFirst].occupied && first[indexFirst].key == key) {
@@ -826,7 +780,6 @@ bool CuckooHashTable::updateExisting(int key, int value) {
     return false;
 }
 
-// Alokuje obie tablice o podanej pojemności i oznacza wszystkie komórki jako wolne.
 void CuckooHashTable::allocateTables(int newCapacity) {
     capacity = newCapacity;
     first = new Slot[capacity];
@@ -841,8 +794,6 @@ void CuckooHashTable::allocateTables(int newCapacity) {
     }
 }
 
-// Przebudowuje strukturę: tworzy większe tablice i ponownie wstawia do nich
-// wszystkie aktywne elementy z obu dotychczasowych tablic.
 void CuckooHashTable::rehash(int newCapacity) {
     Slot* oldFirst = first;
     Slot* oldSecond = second;
