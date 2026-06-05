@@ -117,33 +117,48 @@ static void tableMenu(IHashTable& table, const std::string& manualFile, const st
     }
 }
 
+// Wariant z adresowaniem otwartym pyta o tryb próbkowania (liniowy lub
+// kwadratowy), a następnie obsługuje tablicę przez wspólne menu struktury.
+static void openAddressingMenu() {
+    std::cout << "Tryb probkowania:\n";
+    std::cout << "1. Liniowe\n";
+    std::cout << "2. Kwadratowe\n";
+    int mode = readInt("Wybor: ");
+    if (mode == 1) {
+        OpenAddressingHashTable linearTable(OpenAddressingHashTable::Linear);
+        tableMenu(linearTable, "hash_liniowa.csv", "hash_liniowa_autosave.csv");
+    } else if (mode == 2) {
+        OpenAddressingHashTable quadraticTable(OpenAddressingHashTable::Quadratic);
+        tableMenu(quadraticTable, "hash_kwadratowa.csv", "hash_kwadratowa_autosave.csv");
+    } else {
+        std::cout << "Nieznana opcja.\n";
+    }
+}
+
 int main() {
-    // Cztery warianty tablicy mieszającej obsługiwane przez wspólny interfejs.
-    OpenAddressingHashTable linearTable(OpenAddressingHashTable::Linear);
-    OpenAddressingHashTable quadraticTable(OpenAddressingHashTable::Quadratic);
+    // Trzy warianty tablicy mieszającej obsługiwane przez wspólny interfejs:
+    // adresowanie otwarte (z wyborem trybu próbkowania), łańcuchowanie drzewami
+    // AVL oraz cuckoo hashing.
     AVLHashTable avlTable;
     CuckooHashTable cuckooTable;
 
     bool running = true;
     while (running) {
         std::cout << "\nMenu glowne\n";
-        std::cout << "1. Tablica mieszajaca - adresowanie liniowe\n";
-        std::cout << "2. Tablica mieszajaca - adresowanie kwadratowe\n";
-        std::cout << "3. Tablica mieszajaca - lancuchowanie drzewami AVL\n";
-        std::cout << "4. Tablica mieszajaca - cuckoo hashing\n";
-        std::cout << "5. Badania wydajnosciowe i zapis CSV\n";
+        std::cout << "1. Tablica mieszajaca - adresowanie otwarte\n";
+        std::cout << "2. Tablica mieszajaca - lancuchowanie drzewami AVL\n";
+        std::cout << "3. Tablica mieszajaca - cuckoo hashing\n";
+        std::cout << "4. Badania wydajnosciowe i zapis CSV\n";
         std::cout << "0. Wyjscie\n";
 
         int choice = readInt("Wybor: ");
         if (choice == 1) {
-            tableMenu(linearTable, "hash_liniowa.csv", "hash_liniowa_autosave.csv");
+            openAddressingMenu();
         } else if (choice == 2) {
-            tableMenu(quadraticTable, "hash_kwadratowa.csv", "hash_kwadratowa_autosave.csv");
-        } else if (choice == 3) {
             tableMenu(avlTable, "hash_avl.csv", "hash_avl_autosave.csv");
-        } else if (choice == 4) {
+        } else if (choice == 3) {
             tableMenu(cuckooTable, "hash_cuckoo.csv", "hash_cuckoo_autosave.csv");
-        } else if (choice == 5) {
+        } else if (choice == 4) {
             runBenchmarks();
         } else if (choice == 0) {
             running = false;

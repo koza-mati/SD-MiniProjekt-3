@@ -1,6 +1,6 @@
 # SD-MiniProjekt-3
 
-Projekt z kursu Struktury Danych: tablice mieszające w C++. Program udostępnia cztery implementacje tablicy mieszającej, menu konsolowe oraz moduł pomiarów wydajności zapisywanych do plików CSV i TXT.
+Projekt z kursu Struktury Danych: tablice mieszające w C++. Program udostępnia trzy warianty tablicy mieszającej (adresowanie otwarte z próbkowaniem liniowym lub kwadratowym, łańcuchowanie drzewami AVL oraz cuckoo hashing), menu konsolowe oraz moduł pomiarów wydajności zapisywanych do plików CSV i TXT.
 
 ## Cel projektu
 
@@ -209,12 +209,13 @@ Złożoność średnia:
 
 Po uruchomieniu programu dostępne jest menu główne:
 
-1. Tablica mieszająca - adresowanie liniowe.
-2. Tablica mieszająca - adresowanie kwadratowe.
-3. Tablica mieszająca - łańcuchowanie drzewami AVL.
-4. Tablica mieszająca - cuckoo hashing.
-5. Badania wydajnościowe i zapis CSV.
+1. Tablica mieszająca - adresowanie otwarte (z wyborem trybu próbkowania: liniowe lub kwadratowe).
+2. Tablica mieszająca - łańcuchowanie drzewami AVL.
+3. Tablica mieszająca - cuckoo hashing.
+4. Badania wydajnościowe i zapis CSV.
 0. Wyjście.
+
+Po wybraniu wariantu z adresowaniem otwartym program pyta o tryb próbkowania (liniowe lub kwadratowe).
 
 W menu konkretnej struktury można:
 
@@ -338,4 +339,4 @@ Git Bash / MSYS / podobne środowisko:
 
 ## Podsumowanie
 
-Projekt realizuje cztery warianty tablic mieszających: adresowanie liniowe, adresowanie kwadratowe, tablice z kubełkami opartymi o drzewa AVL oraz cuckoo hashing. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porównujące koszty operacji `insert` i `remove` dla dużych zestawów danych.
+Projekt realizuje trzy warianty tablic mieszających: adresowanie otwarte (z próbkowaniem liniowym lub kwadratowym), tablice z kubełkami opartymi o drzewa AVL oraz cuckoo hashing. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porównujące koszty operacji `insert` i `remove` dla dużych zestawów danych.
