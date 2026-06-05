@@ -143,6 +143,7 @@ void runBenchmarks() {
             long long removeTotal = 0;
 
             std::cout << "Benchmark: " << benchmarkTableName(tableType) << ", size=" << size << "\n";
+            std::cout.flush();
 
             for (int attempt = 0; attempt < ATTEMPTS; ++attempt) {
                 // Dla każdej próby struktura budowana jest od nowa z osobnego zestawu danych.
@@ -151,6 +152,12 @@ void runBenchmarks() {
                 insertTotal += measureInsert(tableType, data, size);
                 removeTotal += measureRemove(tableType, data, size);
                 delete[] data;
+
+                if (size >= 100000 && (attempt + 1) % 10 == 0) {
+                    std::cout << "  " << benchmarkTableName(tableType) << " size=" << size
+                              << " proba " << (attempt + 1) << "/" << ATTEMPTS << "\n";
+                    std::cout.flush();
+                }
             }
 
             long long insertAverage = insertTotal / ATTEMPTS;

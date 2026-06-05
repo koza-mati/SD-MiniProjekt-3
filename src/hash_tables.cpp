@@ -587,58 +587,62 @@ bool CuckooHashTable::insert(int key, int value) {
         return false;
     }
 
-    if (shouldGrow()) {
-        rehash(nextPrime(capacity * 2 + 1));
-    }
-
     int currentKey = key;
     int currentValue = value;
-    int whichTable = 0;          // 0 - tablica first, 1 - tablica second
-    int limit = maxKicks();
 
-    // Zasada cuckoo: jeśli docelowa komórka jest zajęta, wyrzucamy jej element
-    // i przenosimy go na alternatywną pozycję w drugiej tablicy, powtarzając
-    // proces naprzemiennie aż do znalezienia wolnej komórki.
-    for (int kick = 0; kick < limit; ++kick) {
-        if (whichTable == 0) {
-            int index = hashFirst(currentKey);
-            if (!first[index].occupied) {
+    // Pętla zamiast rekurencji - przy dużych zestawach danych rekurencyjne
+    // ponawianie po rehash mogło przepełnić stos (szczególnie w buildzie Debug).
+    while (true) {
+        if (shouldGrow()) {
+            rehash(nextPrime(capacity * 2 + 1));
+        }
+
+        int whichTable = 0;   // 0 - tablica first, 1 - tablica second
+        int limit = maxKicks();
+
+        // Zasada cuckoo: jeśli docelowa komórka jest zajęta, wyrzucamy jej element
+        // i przenosimy go na alternatywną pozycję w drugiej tablicy, powtarzając
+        // proces naprzemiennie aż do znalezienia wolnej komórki.
+        for (int kick = 0; kick < limit; ++kick) {
+            if (whichTable == 0) {
+                int index = hashFirst(currentKey);
+                if (!first[index].occupied) {
+                    first[index].key = currentKey;
+                    first[index].value = currentValue;
+                    first[index].occupied = true;
+                    ++currentSize;
+                    return true;
+                }
+                int evictedKey = first[index].key;
+                int evictedValue = first[index].value;
                 first[index].key = currentKey;
                 first[index].value = currentValue;
-                first[index].occupied = true;
-                ++currentSize;
-                return true;
-            }
-            int evictedKey = first[index].key;
-            int evictedValue = first[index].value;
-            first[index].key = currentKey;
-            first[index].value = currentValue;
-            currentKey = evictedKey;
-            currentValue = evictedValue;
-            whichTable = 1;
-        } else {
-            int index = hashSecond(currentKey);
-            if (!second[index].occupied) {
+                currentKey = evictedKey;
+                currentValue = evictedValue;
+                whichTable = 1;
+            } else {
+                int index = hashSecond(currentKey);
+                if (!second[index].occupied) {
+                    second[index].key = currentKey;
+                    second[index].value = currentValue;
+                    second[index].occupied = true;
+                    ++currentSize;
+                    return true;
+                }
+                int evictedKey = second[index].key;
+                int evictedValue = second[index].value;
                 second[index].key = currentKey;
                 second[index].value = currentValue;
-                second[index].occupied = true;
-                ++currentSize;
-                return true;
+                currentKey = evictedKey;
+                currentValue = evictedValue;
+                whichTable = 0;
             }
-            int evictedKey = second[index].key;
-            int evictedValue = second[index].value;
-            second[index].key = currentKey;
-            second[index].value = currentValue;
-            currentKey = evictedKey;
-            currentValue = evictedValue;
-            whichTable = 0;
         }
-    }
 
-    // Przekroczenie limitu przeniesień oznacza cykl - powiększamy strukturę
-    // i ponawiamy wstawianie trzymanego "w ręku" elementu.
-    rehash(nextPrime(capacity * 2 + 1));
-    return insert(currentKey, currentValue);
+        // Przekroczenie limitu przeniesień oznacza cykl - powiększamy strukturę
+        // i ponawiamy wstawianie trzymanego "w ręku" elementu.
+        rehash(nextPrime(capacity * 2 + 1));
+    }
 }
 
 bool CuckooHashTable::remove(int key) {
