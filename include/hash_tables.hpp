@@ -25,16 +25,10 @@ public:
     virtual const char* name() const = 0;
 };
 
-// Tablica mieszająca z adresowaniem otwartym, w trybie próbkowania liniowego
-// lub kwadratowego.
+// Tablica mieszająca z adresowaniem otwartym i próbkowaniem liniowym.
 class OpenAddressingHashTable : public IHashTable {
 public:
-    enum ProbeMode {
-        Linear,     // (hash + i) % capacity
-        Quadratic   // (hash + i + i*i) % capacity
-    };
-
-    OpenAddressingHashTable(ProbeMode mode, int initialCapacity = 101);
+    OpenAddressingHashTable(int initialCapacity = 101);
     ~OpenAddressingHashTable();
 
     bool insert(int key, int value);
@@ -59,7 +53,6 @@ private:
         EntryState state;
     };
 
-    ProbeMode probeMode;
     Entry* table;
     int capacity;          // liczba komórek (zawsze liczba pierwsza)
     int currentSize;       // liczba aktywnych elementów

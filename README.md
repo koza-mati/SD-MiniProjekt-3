@@ -1,13 +1,13 @@
 # SD-MiniProjekt-3
 
-Projekt z kursu Struktury Danych: tablice mieszające w C++. Program udostępnia trzy warianty tablicy mieszającej (adresowanie otwarte z próbkowaniem liniowym lub kwadratowym, łańcuchowanie drzewami AVL oraz cuckoo hashing), menu konsolowe oraz moduł pomiarów wydajności zapisywanych do plików CSV i TXT.
+Projekt z kursu Struktury Danych: tablice mieszające w C++. Program udostępnia trzy warianty tablicy mieszającej (adresowanie otwarte z próbkowaniem liniowym, łańcuchowanie drzewami AVL oraz cuckoo hashing), menu konsolowe oraz moduł pomiarów wydajności zapisywanych do plików CSV i TXT.
 
 ## Cel projektu
 
 Celem projektu jest:
 
 - implementacja tablic mieszających przechowujących pary `key-value`,
-- porównanie czterech sposobów rozwiązywania kolizji,
+- porównanie trzech sposobów rozwiązywania kolizji,
 - przygotowanie jednej implementacji wykorzystującej drzewo AVL,
 - obsługa podstawowych operacji przez wspólny interfejs,
 - wykonanie pomiarów czasu działania operacji dla różnych rozmiarów danych,
@@ -35,13 +35,13 @@ Zarówno klucze, jak i wartości są liczbami całkowitymi typu `int`.
 
 Katalog `include/` zawiera:
 
-- `hash_tables.hpp` - wspólny interfejs `IHashTable` oraz deklaracje czterech implementacji tablic mieszających,
+- `hash_tables.hpp` - wspólny interfejs `IHashTable` oraz deklaracje trzech implementacji tablic mieszających,
 - `benchmark.hpp` - deklaracje funkcji benchmarków i funkcji `benchmarkSeed(size, attempt)`.
 
 Katalog `src/` zawiera:
 
 - `main.cpp` - punkt startowy programu, menu konsolowe, obsługa CSV z poziomu programu i generowanie danych losowych,
-- `hash_tables.cpp` - implementacje tablic mieszających: adresowanie liniowe, adresowanie kwadratowe, kubełki AVL i cuckoo hashing,
+- `hash_tables.cpp` - implementacje tablic mieszających: adresowanie otwarte, kubełki AVL i cuckoo hashing,
 - `benchmark.cpp` - benchmarki operacji `insert` oraz `remove`, zapis wyników do CSV i TXT.
 
 Pliki w katalogu głównym:
@@ -71,9 +71,9 @@ Pojemność `capacity` oznacza liczbę kubełków lub komórek w aktualnej tabli
 
 Pojemność jest zwiększana automatycznie przez `rehash`, gdy tablica zaczyna być zbyt wypełniona. Nowa pojemność jest dobierana jako kolejna liczba pierwsza, co zmniejsza ryzyko niekorzystnego rozkładania się kluczy.
 
-## Implementacja: adresowanie liniowe
+## Implementacja: adresowanie otwarte
 
-`OpenAddressingHashTable` w trybie `Linear` implementuje tablicę mieszającą z adresowaniem otwartym i próbkowaniem liniowym.
+`OpenAddressingHashTable` implementuje tablicę mieszającą z adresowaniem otwartym i próbkowaniem liniowym. Wszystkie elementy przechowywane są bezpośrednio w jednej tablicy, a kolizje rozwiązywane są przez szukanie kolejnej wolnej komórki.
 
 Przy kolizji sprawdzane są kolejne komórki:
 
@@ -94,7 +94,8 @@ Działanie operacji:
 - `insert` szuka miejsca liniowo, dodaje nowy klucz albo aktualizuje istniejący,
 - `remove` znajduje komórkę i oznacza ją jako `Deleted`,
 - `find` przechodzi po sekwencji próbkowania do znalezienia klucza albo pustej komórki,
-- `clear` ustawia wszystkie komórki jako `Empty`.
+- `clear` ustawia wszystkie komórki jako `Empty`,
+- `rehash` tworzy większą tablicę i wstawia wszystkie aktywne elementy od nowa, gdy wypełnienie przekroczy 0,7 pojemności.
 
 Złożoność średnia:
 
@@ -106,36 +107,6 @@ Złożoność średnia:
 - `loadFromCSV` - średnio `O(n)`.
 
 W najgorszym przypadku operacje mogą mieć złożoność `O(n)`, gdy wystąpi wiele kolizji.
-
-## Implementacja: adresowanie kwadratowe
-
-`OpenAddressingHashTable` w trybie `Quadratic` implementuje tablicę mieszającą z adresowaniem otwartym i próbkowaniem kwadratowym.
-
-Przy kolizji sprawdzane są komórki według wzoru:
-
-```text
-(hash(key) + i + i * i) % capacity
-```
-
-Próbkowanie kwadratowe ogranicza tworzenie długich ciągłych bloków zajętych komórek, które często pojawiają się przy próbkowaniu liniowym. Program utrzymuje niższe wypełnienie tej tablicy, aby sekwencja próbkowania miała większą szansę znaleźć wolną komórkę.
-
-Działanie operacji jest takie samo jak w wariancie liniowym:
-
-- `insert` dodaje lub aktualizuje element,
-- `remove` oznacza komórkę jako `Deleted`,
-- `find` wyszukuje element po sekwencji próbkowania,
-- `rehash` tworzy większą tablicę i wstawia wszystkie aktywne elementy od nowa.
-
-Złożoność średnia:
-
-- `insert` - `O(1)`,
-- `remove` - `O(1)`,
-- `find` - `O(1)`,
-- `returnSize` - `O(1)`,
-- `saveToCSV` - `O(n + capacity)`,
-- `loadFromCSV` - średnio `O(n)`.
-
-W najgorszym przypadku operacje mogą mieć złożoność `O(n)`.
 
 ## Implementacja: kubełki z drzewami AVL
 
@@ -178,7 +149,7 @@ Przy dobrym rozkładzie funkcji mieszającej `k` jest małe, więc operacje są 
 
 ## Implementacja: cuckoo hashing
 
-`CuckooHashTable` implementuje tablicę mieszającą w schemacie _cuckoo hashing_. Jest to wariant adresowania otwartego o odmiennej zasadzie działania niż próbkowanie liniowe i kwadratowe: zamiast jednej tablicy i sekwencji próbkowania używane są dwie tablice oraz dwie niezależne funkcje mieszające.
+`CuckooHashTable` implementuje tablicę mieszającą w schemacie _cuckoo hashing_. Jest to wariant adresowania otwartego o odmiennej zasadzie działania niż próbkowanie liniowe: zamiast jednej tablicy i sekwencji próbkowania używane są dwie tablice oraz dwie niezależne funkcje mieszające.
 
 Każdy klucz ma dokładnie dwie dozwolone pozycje:
 
@@ -209,13 +180,11 @@ Złożoność średnia:
 
 Po uruchomieniu programu dostępne jest menu główne:
 
-1. Tablica mieszająca - adresowanie otwarte (z wyborem trybu próbkowania: liniowe lub kwadratowe).
+1. Tablica mieszająca - adresowanie otwarte.
 2. Tablica mieszająca - łańcuchowanie drzewami AVL.
 3. Tablica mieszająca - cuckoo hashing.
 4. Badania wydajnościowe i zapis CSV.
 0. Wyjście.
-
-Po wybraniu wariantu z adresowaniem otwartym program pyta o tryb próbkowania (liniowe lub kwadratowe).
 
 W menu konkretnej struktury można:
 
@@ -230,15 +199,13 @@ W menu konkretnej struktury można:
 
 Po operacjach modyfikujących program automatycznie zapisuje stan pomocniczy:
 
-- `hash_liniowa_autosave.csv` dla adresowania liniowego,
-- `hash_kwadratowa_autosave.csv` dla adresowania kwadratowego,
+- `hash_otwarte_autosave.csv` dla adresowania otwartego,
 - `hash_avl_autosave.csv` dla tablicy z kubełkami AVL,
 - `hash_cuckoo_autosave.csv` dla cuckoo hashing.
 
 Ręczny zapis z menu tworzy:
 
-- `hash_liniowa.csv`,
-- `hash_kwadratowa.csv`,
+- `hash_otwarte.csv`,
 - `hash_avl.csv`,
 - `hash_cuckoo.csv`.
 
@@ -289,8 +256,7 @@ Dla każdego rozmiaru każda operacja jest mierzona 100 razy. Przed pojedynczym 
 Pliki wynikowe:
 
 - `pomiary.txt` - zbiorcze zestawienie wyników,
-- `benchmark_liniowa.csv` - wyniki dla adresowania liniowego,
-- `benchmark_kwadratowa.csv` - wyniki dla adresowania kwadratowego,
+- `benchmark_otwarte.csv` - wyniki dla adresowania otwartego,
 - `benchmark_avl.csv` - wyniki dla tablicy z kubełkami AVL,
 - `benchmark_cuckoo.csv` - wyniki dla cuckoo hashing,
 - `seedy_100000.txt` - lista seedów dla rozmiaru 100000.
@@ -339,4 +305,4 @@ Git Bash / MSYS / podobne środowisko:
 
 ## Podsumowanie
 
-Projekt realizuje trzy warianty tablic mieszających: adresowanie otwarte (z próbkowaniem liniowym lub kwadratowym), tablice z kubełkami opartymi o drzewa AVL oraz cuckoo hashing. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porównujące koszty operacji `insert` i `remove` dla dużych zestawów danych.
+Projekt realizuje trzy warianty tablic mieszających: adresowanie otwarte (z próbkowaniem liniowym), tablice z kubełkami opartymi o drzewa AVL oraz cuckoo hashing. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porównujące koszty operacji `insert` i `remove` dla dużych zestawów danych.

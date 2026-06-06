@@ -117,28 +117,10 @@ static void tableMenu(IHashTable& table, const std::string& manualFile, const st
     }
 }
 
-// Wariant z adresowaniem otwartym pyta o tryb próbkowania (liniowy lub
-// kwadratowy), a następnie obsługuje tablicę przez wspólne menu struktury.
-static void openAddressingMenu() {
-    std::cout << "Tryb probkowania:\n";
-    std::cout << "1. Liniowe\n";
-    std::cout << "2. Kwadratowe\n";
-    int mode = readInt("Wybor: ");
-    if (mode == 1) {
-        OpenAddressingHashTable linearTable(OpenAddressingHashTable::Linear);
-        tableMenu(linearTable, "hash_liniowa.csv", "hash_liniowa_autosave.csv");
-    } else if (mode == 2) {
-        OpenAddressingHashTable quadraticTable(OpenAddressingHashTable::Quadratic);
-        tableMenu(quadraticTable, "hash_kwadratowa.csv", "hash_kwadratowa_autosave.csv");
-    } else {
-        std::cout << "Nieznana opcja.\n";
-    }
-}
-
 int main() {
     // Trzy warianty tablicy mieszającej obsługiwane przez wspólny interfejs:
-    // adresowanie otwarte (z wyborem trybu próbkowania), łańcuchowanie drzewami
-    // AVL oraz cuckoo hashing.
+    // adresowanie otwarte, łańcuchowanie drzewami AVL oraz cuckoo hashing.
+    OpenAddressingHashTable openTable;
     AVLHashTable avlTable;
     CuckooHashTable cuckooTable;
 
@@ -153,7 +135,7 @@ int main() {
 
         int choice = readInt("Wybor: ");
         if (choice == 1) {
-            openAddressingMenu();
+            tableMenu(openTable, "hash_otwarte.csv", "hash_otwarte_autosave.csv");
         } else if (choice == 2) {
             tableMenu(avlTable, "hash_avl.csv", "hash_avl_autosave.csv");
         } else if (choice == 3) {

@@ -7,8 +7,8 @@
 //  Adresowanie otwarte (próbkowanie liniowe i kwadratowe)
 // ===========================================================================
 
-OpenAddressingHashTable::OpenAddressingHashTable(ProbeMode mode, int initialCapacity)
-    : probeMode(mode), table(0), capacity(0), currentSize(0), deletedCount(0) {
+OpenAddressingHashTable::OpenAddressingHashTable(int initialCapacity)
+    : table(0), capacity(0), currentSize(0), deletedCount(0) {
     allocateTable(nextPrime(initialCapacity));
 }
 
@@ -134,8 +134,7 @@ bool OpenAddressingHashTable::loadFromCSV(const std::string& fileName) {
 }
 
 const char* OpenAddressingHashTable::name() const {
-    return probeMode == Linear ? "Tablica mieszajaca - adresowanie liniowe"
-                               : "Tablica mieszajaca - adresowanie kwadratowe";
+    return "Tablica mieszajaca - adresowanie otwarte";
 }
 
 int OpenAddressingHashTable::hash(int key) const {
@@ -146,18 +145,16 @@ int OpenAddressingHashTable::hash(int key) const {
     return static_cast<int>(normalized % capacity);
 }
 
+// Próbkowanie liniowe: kolejne komórki przeglądane są o jeden dalej.
 int OpenAddressingHashTable::probeIndex(int baseIndex, int attempt) const {
-    if (probeMode == Linear) {
-        return (baseIndex + attempt) % capacity;
-    }
-    return (baseIndex + attempt + attempt * attempt) % capacity;
+    return (baseIndex + attempt) % capacity;
 }
 
-// Pod uwagę brane są aktywne elementy i nagrobki. Próbkowanie kwadratowe wymaga
-// niższego wypełnienia, aby sekwencja próbkowania nie pomijała wolnych komórek.
+// Pod uwagę brane są aktywne elementy i nagrobki. Tablica jest powiększana po
+// przekroczeniu współczynnika wypełnienia 0,7.
 bool OpenAddressingHashTable::shouldGrow() const {
     int used = currentSize + deletedCount;
-    int limit = probeMode == Quadratic ? capacity / 2 : capacity * 7 / 10;
+    int limit = capacity * 7 / 10;
     return used + 1 >= limit;
 }
 

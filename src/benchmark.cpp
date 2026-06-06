@@ -45,12 +45,9 @@ static void generateData(HashRecord* data, int count, unsigned int seed) {
 
 static IHashTable* createTable(int tableType) {
     if (tableType == 0) {
-        return new OpenAddressingHashTable(OpenAddressingHashTable::Linear);
+        return new OpenAddressingHashTable();
     }
     if (tableType == 1) {
-        return new OpenAddressingHashTable(OpenAddressingHashTable::Quadratic);
-    }
-    if (tableType == 2) {
         return new AVLHashTable();
     }
     return new CuckooHashTable();
@@ -58,12 +55,9 @@ static IHashTable* createTable(int tableType) {
 
 static const char* benchmarkFileName(int tableType) {
     if (tableType == 0) {
-        return "benchmark_liniowa.csv";
+        return "benchmark_otwarte.csv";
     }
     if (tableType == 1) {
-        return "benchmark_kwadratowa.csv";
-    }
-    if (tableType == 2) {
         return "benchmark_avl.csv";
     }
     return "benchmark_cuckoo.csv";
@@ -71,12 +65,9 @@ static const char* benchmarkFileName(int tableType) {
 
 static const char* benchmarkTableName(int tableType) {
     if (tableType == 0) {
-        return "Adresowanie liniowe";
+        return "Adresowanie otwarte";
     }
     if (tableType == 1) {
-        return "Adresowanie kwadratowe";
-    }
-    if (tableType == 2) {
         return "Lancuchowanie AVL";
     }
     return "Cuckoo hashing";
@@ -132,7 +123,7 @@ void runBenchmarks() {
 
     saveSeedsFor100000();
 
-    for (int tableType = 0; tableType < 4; ++tableType) {
+    for (int tableType = 0; tableType < 3; ++tableType) {
         std::ofstream csv(benchmarkFileName(tableType));
         csv << "Operation,Size,AverageTime_ns\n";
         summary << benchmarkTableName(tableType) << "\n";
@@ -172,5 +163,5 @@ void runBenchmarks() {
         summary << "\n";
     }
 
-    std::cout << "Zapisano: pomiary.txt, benchmark_liniowa.csv, benchmark_kwadratowa.csv, benchmark_avl.csv, benchmark_cuckoo.csv, seedy_100000.txt\n";
+    std::cout << "Zapisano: pomiary.txt, benchmark_otwarte.csv, benchmark_avl.csv, benchmark_cuckoo.csv, seedy_100000.txt\n";
 }
