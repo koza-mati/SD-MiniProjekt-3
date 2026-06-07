@@ -7,10 +7,12 @@
 #include <iostream>
 #include <random>
 
-static const int ATTEMPTS = 100;
+static const int ATTEMPTS = 100;   // liczba prób (różnych ziaren) dla każdego rozmiaru
 static const int SIZES_COUNT = 8;
 static const int BENCHMARK_SIZES[SIZES_COUNT] = {10000, 20000, 40000, 80000, 100000, 160000, 320000, 640000};
 
+// Deterministyczne ziarno zależne od rozmiaru i numeru próby (skrót FNV-1a).
+// Dzięki temu każda próba korzysta z innego, lecz powtarzalnego zestawu danych.
 unsigned int benchmarkSeed(int size, int attempt) {
     unsigned int seed = 2166136261u;
     seed ^= static_cast<unsigned int>(size);
@@ -20,6 +22,9 @@ unsigned int benchmarkSeed(int size, int attempt) {
     return seed;
 }
 
+// Generuje unikalne klucze 1..count z losowymi wartościami, a następnie tasuje
+// rekordy (Fisher-Yates). Tasowanie zapewnia, że badane klucze nie leżą zawsze
+// na początku struktury, co przeciwdziała pozornemu O(1).
 static void generateData(HashRecord* data, int count, unsigned int seed) {
     std::mt19937 generator(seed);
     std::uniform_int_distribution<int> valueDistribution(1, count * 10 + 100);
@@ -40,34 +45,37 @@ static void generateData(HashRecord* data, int count, unsigned int seed) {
 
 static IHashTable* createTable(int tableType) {
     if (tableType == 0) {
-        return new OpenAddressingHashTable(OpenAddressingHashTable::Linear);
+        return new OpenAddressingHashTable();
     }
     if (tableType == 1) {
-        return new OpenAddressingHashTable(OpenAddressingHashTable::Quadratic);
+        return new AVLHashTable();
     }
-    return new AVLHashTable();
+    return new CuckooHashTable();
 }
 
 static const char* benchmarkFileName(int tableType) {
     if (tableType == 0) {
-        return "benchmark_liniowa.csv";
+        return "benchmark_otwarte.csv";
     }
     if (tableType == 1) {
-        return "benchmark_kwadratowa.csv";
+        return "benchmark_avl.csv";
     }
-    return "benchmark_avl.csv";
+    return "benchmark_cuckoo.csv";
 }
 
 static const char* benchmarkTableName(int tableType) {
     if (tableType == 0) {
-        return "Adresowanie liniowe";
+        return "Adresowanie otwarte";
     }
     if (tableType == 1) {
-        return "Adresowanie kwadratowe";
+        return "Lancuchowanie AVL";
     }
-    return "Lancuchowanie AVL";
+    return "Cuckoo hashing";
 }
 
+// Mierzy czas jednej operacji insert na strukturze zbudowanej z size elementów.
+// Mierzona jest wyłącznie pojedyncza operacja, aby struktura nie rozrastała się
+// w trakcie pomiaru. Element data[size] ma unikalny klucz (rzeczywiste wstawienie).
 static long long measureInsert(int tableType, HashRecord* data, int size) {
     IHashTable* table = createTable(tableType);
     for (int i = 0; i < size; ++i) {
@@ -82,6 +90,8 @@ static long long measureInsert(int tableType, HashRecord* data, int size) {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
+// Mierzy czas jednej operacji remove. Usuwany jest klucz z losowej (po tasowaniu)
+// pozycji, a nie zawsze ten sam.
 static long long measureRemove(int tableType, HashRecord* data, int size) {
     IHashTable* table = createTable(tableType);
     for (int i = 0; i < size; ++i) {
@@ -124,13 +134,21 @@ void runBenchmarks() {
             long long removeTotal = 0;
 
             std::cout << "Benchmark: " << benchmarkTableName(tableType) << ", size=" << size << "\n";
+            std::cout.flush();
 
             for (int attempt = 0; attempt < ATTEMPTS; ++attempt) {
+                // Dla każdej próby struktura budowana jest od nowa z osobnego zestawu danych.
                 HashRecord* data = new HashRecord[size + 1];
                 generateData(data, size + 1, benchmarkSeed(size, attempt));
                 insertTotal += measureInsert(tableType, data, size);
                 removeTotal += measureRemove(tableType, data, size);
                 delete[] data;
+
+                if (size >= 100000 && (attempt + 1) % 10 == 0) {
+                    std::cout << "  " << benchmarkTableName(tableType) << " size=" << size
+                              << " proba " << (attempt + 1) << "/" << ATTEMPTS << "\n";
+                    std::cout.flush();
+                }
             }
 
             long long insertAverage = insertTotal / ATTEMPTS;
@@ -145,5 +163,5 @@ void runBenchmarks() {
         summary << "\n";
     }
 
-    std::cout << "Zapisano: pomiary.txt, benchmark_liniowa.csv, benchmark_kwadratowa.csv, benchmark_avl.csv, seedy_100000.txt\n";
+    std::cout << "Zapisano: pomiary.txt, benchmark_otwarte.csv, benchmark_avl.csv, benchmark_cuckoo.csv, seedy_100000.txt\n";
 }

@@ -11,6 +11,7 @@ static void clearInput() {
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
+// Wczytuje liczbę całkowitą, ponawiając próbę przy błędnym wejściu.
 static int readInt(const char* prompt) {
     int value;
     while (true) {
@@ -29,6 +30,9 @@ static void autosave(IHashTable& table, const std::string& fileName) {
     }
 }
 
+// Wypełnia strukturę losowymi parami (mt19937). Klucze muszą być unikalne, więc
+// losujemy aż do osiągnięcia żądanego rozmiaru - powtórzony klucz powoduje jedynie
+// aktualizację wartości i nie zwiększa rozmiaru.
 static void generateRandom(IHashTable& table, int count) {
     table.clear();
 
@@ -42,6 +46,8 @@ static void generateRandom(IHashTable& table, int count) {
     }
 }
 
+// Menu pojedynczej struktury. Po każdej operacji modyfikującej wykonywany jest
+// automatyczny zapis stanu do pliku pomocniczego.
 static void tableMenu(IHashTable& table, const std::string& manualFile, const std::string& autosaveFile) {
     bool running = true;
     while (running) {
@@ -112,26 +118,28 @@ static void tableMenu(IHashTable& table, const std::string& manualFile, const st
 }
 
 int main() {
-    OpenAddressingHashTable linearTable(OpenAddressingHashTable::Linear);
-    OpenAddressingHashTable quadraticTable(OpenAddressingHashTable::Quadratic);
+    // Trzy warianty tablicy mieszającej obsługiwane przez wspólny interfejs:
+    // adresowanie otwarte, łańcuchowanie drzewami AVL oraz cuckoo hashing.
+    OpenAddressingHashTable openTable;
     AVLHashTable avlTable;
+    CuckooHashTable cuckooTable;
 
     bool running = true;
     while (running) {
         std::cout << "\nMenu glowne\n";
-        std::cout << "1. Tablica mieszajaca - adresowanie liniowe\n";
-        std::cout << "2. Tablica mieszajaca - adresowanie kwadratowe\n";
-        std::cout << "3. Tablica mieszajaca - lancuchowanie drzewami AVL\n";
+        std::cout << "1. Tablica mieszajaca - adresowanie otwarte\n";
+        std::cout << "2. Tablica mieszajaca - lancuchowanie drzewami AVL\n";
+        std::cout << "3. Tablica mieszajaca - cuckoo hashing\n";
         std::cout << "4. Badania wydajnosciowe i zapis CSV\n";
         std::cout << "0. Wyjscie\n";
 
         int choice = readInt("Wybor: ");
         if (choice == 1) {
-            tableMenu(linearTable, "hash_liniowa.csv", "hash_liniowa_autosave.csv");
+            tableMenu(openTable, "hash_otwarte.csv", "hash_otwarte_autosave.csv");
         } else if (choice == 2) {
-            tableMenu(quadraticTable, "hash_kwadratowa.csv", "hash_kwadratowa_autosave.csv");
-        } else if (choice == 3) {
             tableMenu(avlTable, "hash_avl.csv", "hash_avl_autosave.csv");
+        } else if (choice == 3) {
+            tableMenu(cuckooTable, "hash_cuckoo.csv", "hash_cuckoo_autosave.csv");
         } else if (choice == 4) {
             runBenchmarks();
         } else if (choice == 0) {

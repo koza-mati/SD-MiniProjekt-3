@@ -3,8 +3,12 @@
 #include <cstdlib>
 #include <sstream>
 
-OpenAddressingHashTable::OpenAddressingHashTable(ProbeMode mode, int initialCapacity)
-    : probeMode(mode), table(0), capacity(0), currentSize(0), deletedCount(0) {
+// ===========================================================================
+//  Adresowanie otwarte (próbkowanie liniowe i kwadratowe)
+// ===========================================================================
+
+OpenAddressingHashTable::OpenAddressingHashTable(int initialCapacity)
+    : table(0), capacity(0), currentSize(0), deletedCount(0) {
     allocateTable(nextPrime(initialCapacity));
 }
 
@@ -12,13 +16,14 @@ OpenAddressingHashTable::~OpenAddressingHashTable() {
     delete[] table;
 }
 
+// Zwraca true, gdy dodano nowy element, false, gdy zaktualizowano istniejący klucz.
 bool OpenAddressingHashTable::insert(int key, int value) {
     if (shouldGrow()) {
         rehash(nextPrime(capacity * 2 + 1));
     }
 
     int baseIndex = hash(key);
-    int firstDeleted = -1;
+    int firstDeleted = -1;   // pierwszy nagrobek na ścieżce, w który można wstawić element
 
     for (int attempt = 0; attempt < capacity; ++attempt) {
         int index = probeIndex(baseIndex, attempt);
@@ -29,6 +34,7 @@ bool OpenAddressingHashTable::insert(int key, int value) {
         if (table[index].state == Deleted && firstDeleted == -1) {
             firstDeleted = index;
         }
+        // Pusta komórka kończy ścieżkę próbkowania - klucza nie ma w tablicy.
         if (table[index].state == Empty) {
             int target = firstDeleted != -1 ? firstDeleted : index;
             table[target].key = key;
@@ -51,10 +57,13 @@ bool OpenAddressingHashTable::insert(int key, int value) {
         return true;
     }
 
+    // Brak wolnego miejsca - powiększamy tablicę i ponawiamy wstawianie.
     rehash(nextPrime(capacity * 2 + 1));
     return insert(key, value);
 }
 
+// Komórka jest oznaczana jako nagrobek (Deleted), aby nie przerwać ścieżki
+// próbkowania innych kluczy.
 bool OpenAddressingHashTable::remove(int key) {
     int index = findSlot(key);
     if (index == -1) {
@@ -112,7 +121,7 @@ bool OpenAddressingHashTable::loadFromCSV(const std::string& fileName) {
 
     clear();
     std::string line;
-    std::getline(file, line);
+    std::getline(file, line);   // nagłówek
     while (std::getline(file, line)) {
         std::stringstream stream(line);
         std::string keyText;
@@ -125,8 +134,7 @@ bool OpenAddressingHashTable::loadFromCSV(const std::string& fileName) {
 }
 
 const char* OpenAddressingHashTable::name() const {
-    return probeMode == Linear ? "Tablica mieszajaca - adresowanie liniowe"
-                               : "Tablica mieszajaca - adresowanie kwadratowe";
+    return "Tablica mieszajaca - adresowanie otwarte";
 }
 
 int OpenAddressingHashTable::hash(int key) const {
@@ -137,16 +145,16 @@ int OpenAddressingHashTable::hash(int key) const {
     return static_cast<int>(normalized % capacity);
 }
 
+// Próbkowanie liniowe: kolejne komórki przeglądane są o jeden dalej.
 int OpenAddressingHashTable::probeIndex(int baseIndex, int attempt) const {
-    if (probeMode == Linear) {
-        return (baseIndex + attempt) % capacity;
-    }
-    return (baseIndex + attempt + attempt * attempt) % capacity;
+    return (baseIndex + attempt) % capacity;
 }
 
+// Pod uwagę brane są aktywne elementy i nagrobki. Tablica jest powiększana po
+// przekroczeniu współczynnika wypełnienia 0,7.
 bool OpenAddressingHashTable::shouldGrow() const {
     int used = currentSize + deletedCount;
-    int limit = probeMode == Quadratic ? capacity / 2 : capacity * 7 / 10;
+    int limit = capacity * 7 / 10;
     return used + 1 >= limit;
 }
 
@@ -160,6 +168,7 @@ void OpenAddressingHashTable::allocateTable(int newCapacity) {
     }
 }
 
+// Tworzy większą tablicę i wstawia ponownie aktywne elementy, pomijając nagrobki.
 void OpenAddressingHashTable::rehash(int newCapacity) {
     Entry* oldTable = table;
     int oldCapacity = capacity;
@@ -182,7 +191,7 @@ int OpenAddressingHashTable::findSlot(int key) const {
     int baseIndex = hash(key);
     for (int attempt = 0; attempt < capacity; ++attempt) {
         int index = probeIndex(baseIndex, attempt);
-        if (table[index].state == Empty) {
+        if (table[index].state == Empty) {   // koniec ścieżki - klucza nie ma
             return -1;
         }
         if (table[index].state == Occupied && table[index].key == key) {
@@ -219,6 +228,10 @@ bool OpenAddressingHashTable::isPrime(int value) const {
     }
     return true;
 }
+
+// ===========================================================================
+//  Łańcuchowanie kubełkami w postaci drzew AVL
+// ===========================================================================
 
 AVLHashTable::AVLHashTable(int initialCapacity)
     : buckets(0), capacity(nextPrime(initialCapacity)), currentSize(0) {
@@ -294,7 +307,7 @@ bool AVLHashTable::loadFromCSV(const std::string& fileName) {
 
     clear();
     std::string line;
-    std::getline(file, line);
+    std::getline(file, line);   // nagłówek
     while (std::getline(file, line)) {
         std::stringstream stream(line);
         std::string keyText;
@@ -322,6 +335,7 @@ int AVLHashTable::height(Node* node) const {
     return node ? node->height : 0;
 }
 
+// Współczynnik zrównoważenia: różnica wysokości lewego i prawego poddrzewa.
 int AVLHashTable::balance(Node* node) const {
     return node ? height(node->left) - height(node->right) : 0;
 }
@@ -375,13 +389,14 @@ AVLHashTable::Node* AVLHashTable::insertNode(Node* node, int key, int value, boo
     } else if (key > node->key) {
         node->right = insertNode(node->right, key, value, added);
     } else {
-        node->value = value;
+        node->value = value;   // klucz już istnieje - tylko aktualizacja wartości
         return node;
     }
 
     node->height = 1 + maxInt(height(node->left), height(node->right));
     int nodeBalance = balance(node);
 
+    // Cztery przypadki niezrównoważenia i odpowiadające im rotacje.
     if (nodeBalance > 1 && key < node->left->key) {
         return rotateRight(node);
     }
@@ -417,6 +432,8 @@ AVLHashTable::Node* AVLHashTable::removeNode(Node* node, int key, bool& removed)
             return child;
         }
 
+        // Węzeł z dwojgiem dzieci zastępujemy następnikiem (najmniejszy klucz
+        // w prawym poddrzewie), który następnie usuwamy z prawego poddrzewa.
         Node* successor = minNode(node->right);
         node->key = successor->key;
         node->value = successor->value;
@@ -494,6 +511,8 @@ void AVLHashTable::collectAndInsert(Node* node, AVLHashTable& target) const {
     collectAndInsert(node->right, target);
 }
 
+// Przebudowa metodą kopiowania i zamiany: budujemy nową tablicę kubełków,
+// przenosimy do niej elementy, po czym przejmujemy jej zasoby.
 void AVLHashTable::rehash(int newCapacity) {
     AVLHashTable newTable(newCapacity);
     for (int i = 0; i < capacity; ++i) {
@@ -513,6 +532,7 @@ void AVLHashTable::rehash(int newCapacity) {
     newTable.currentSize = 0;
 }
 
+// Powiększenie przy średnio około czterech elementach na kubełek.
 bool AVLHashTable::shouldGrow() const {
     return currentSize > capacity * 4;
 }
@@ -528,6 +548,287 @@ int AVLHashTable::nextPrime(int value) const {
 }
 
 bool AVLHashTable::isPrime(int value) const {
+    if (value < 2) {
+        return false;
+    }
+    if (value == 2) {
+        return true;
+    }
+    if (value % 2 == 0) {
+        return false;
+    }
+    for (int i = 3; i * i <= value; i += 2) {
+        if (value % i == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ===========================================================================
+//  Cuckoo hashing (dwie tablice, dwie funkcje mieszające)
+// ===========================================================================
+
+CuckooHashTable::CuckooHashTable(int initialCapacity)
+    : first(0), second(0), capacity(0), currentSize(0) {
+    allocateTables(nextPrime(initialCapacity));
+}
+
+CuckooHashTable::~CuckooHashTable() {
+    delete[] first;
+    delete[] second;
+}
+
+bool CuckooHashTable::insert(int key, int value) {
+    if (updateExisting(key, value)) {
+        return false;
+    }
+
+    int currentKey = key;
+    int currentValue = value;
+
+    // Pętla zamiast rekurencji - przy dużych zestawach danych rekurencyjne
+    // ponawianie po rehash mogło przepełnić stos (szczególnie w buildzie Debug).
+    while (true) {
+        if (shouldGrow()) {
+            rehash(nextPrime(capacity * 2 + 1));
+        }
+
+        int whichTable = 0;   // 0 - tablica first, 1 - tablica second
+        int limit = maxKicks();
+
+        // Zasada cuckoo: jeśli docelowa komórka jest zajęta, wyrzucamy jej element
+        // i przenosimy go na alternatywną pozycję w drugiej tablicy, powtarzając
+        // proces naprzemiennie aż do znalezienia wolnej komórki.
+        for (int kick = 0; kick < limit; ++kick) {
+            if (whichTable == 0) {
+                int index = hashFirst(currentKey);
+                if (!first[index].occupied) {
+                    first[index].key = currentKey;
+                    first[index].value = currentValue;
+                    first[index].occupied = true;
+                    ++currentSize;
+                    return true;
+                }
+                int evictedKey = first[index].key;
+                int evictedValue = first[index].value;
+                first[index].key = currentKey;
+                first[index].value = currentValue;
+                currentKey = evictedKey;
+                currentValue = evictedValue;
+                whichTable = 1;
+            } else {
+                int index = hashSecond(currentKey);
+                if (!second[index].occupied) {
+                    second[index].key = currentKey;
+                    second[index].value = currentValue;
+                    second[index].occupied = true;
+                    ++currentSize;
+                    return true;
+                }
+                int evictedKey = second[index].key;
+                int evictedValue = second[index].value;
+                second[index].key = currentKey;
+                second[index].value = currentValue;
+                currentKey = evictedKey;
+                currentValue = evictedValue;
+                whichTable = 0;
+            }
+        }
+
+        // Przekroczenie limitu przeniesień oznacza cykl - powiększamy strukturę
+        // i ponawiamy wstawianie trzymanego "w ręku" elementu.
+        rehash(nextPrime(capacity * 2 + 1));
+    }
+}
+
+bool CuckooHashTable::remove(int key) {
+    int indexFirst = hashFirst(key);
+    if (first[indexFirst].occupied && first[indexFirst].key == key) {
+        first[indexFirst].occupied = false;
+        --currentSize;
+        return true;
+    }
+
+    int indexSecond = hashSecond(key);
+    if (second[indexSecond].occupied && second[indexSecond].key == key) {
+        second[indexSecond].occupied = false;
+        --currentSize;
+        return true;
+    }
+
+    return false;
+}
+
+bool CuckooHashTable::find(int key, int& value) const {
+    int indexFirst = hashFirst(key);
+    if (first[indexFirst].occupied && first[indexFirst].key == key) {
+        value = first[indexFirst].value;
+        return true;
+    }
+
+    int indexSecond = hashSecond(key);
+    if (second[indexSecond].occupied && second[indexSecond].key == key) {
+        value = second[indexSecond].value;
+        return true;
+    }
+
+    return false;
+}
+
+int CuckooHashTable::returnSize() const {
+    return currentSize;
+}
+
+void CuckooHashTable::clear() {
+    for (int i = 0; i < capacity; ++i) {
+        first[i].occupied = false;
+        second[i].occupied = false;
+    }
+    currentSize = 0;
+}
+
+bool CuckooHashTable::saveToCSV(const std::string& fileName) const {
+    std::ofstream file(fileName.c_str());
+    if (!file.is_open()) {
+        return false;
+    }
+
+    file << "key,value\n";
+    for (int i = 0; i < capacity; ++i) {
+        if (first[i].occupied) {
+            file << first[i].key << "," << first[i].value << "\n";
+        }
+    }
+    for (int i = 0; i < capacity; ++i) {
+        if (second[i].occupied) {
+            file << second[i].key << "," << second[i].value << "\n";
+        }
+    }
+    return true;
+}
+
+bool CuckooHashTable::loadFromCSV(const std::string& fileName) {
+    std::ifstream file(fileName.c_str());
+    if (!file.is_open()) {
+        return false;
+    }
+
+    clear();
+    std::string line;
+    std::getline(file, line);   // nagłówek
+    while (std::getline(file, line)) {
+        std::stringstream stream(line);
+        std::string keyText;
+        std::string valueText;
+        if (std::getline(stream, keyText, ',') && std::getline(stream, valueText, ',')) {
+            insert(std::atoi(keyText.c_str()), std::atoi(valueText.c_str()));
+        }
+    }
+    return true;
+}
+
+const char* CuckooHashTable::name() const {
+    return "Tablica mieszajaca - cuckoo hashing";
+}
+
+// Dwie niezależne funkcje mieszające (mieszanie multiplikatywne) wyznaczające
+// pozycje klucza w obu tablicach.
+int CuckooHashTable::hashFirst(int key) const {
+    unsigned int mixed = static_cast<unsigned int>(key);
+    mixed *= 2654435761u;
+    return static_cast<int>(mixed % static_cast<unsigned int>(capacity));
+}
+
+int CuckooHashTable::hashSecond(int key) const {
+    unsigned int mixed = static_cast<unsigned int>(key);
+    mixed ^= mixed >> 16;
+    mixed *= 2246822519u;
+    mixed ^= mixed >> 13;
+    return static_cast<int>(mixed % static_cast<unsigned int>(capacity));
+}
+
+// Łączne wypełnienie obu tablic utrzymujemy poniżej połowy ich pojemności.
+bool CuckooHashTable::shouldGrow() const {
+    return currentSize + 1 >= capacity;
+}
+
+// Limit przeniesień rosnący logarytmicznie z pojemnością; jego przekroczenie
+// traktujemy jako wystąpienie cyklu wymagającego przebudowy.
+int CuckooHashTable::maxKicks() const {
+    int limit = 8;
+    int value = capacity;
+    while (value > 1) {
+        value /= 2;
+        ++limit;
+    }
+    return limit;
+}
+
+bool CuckooHashTable::updateExisting(int key, int value) {
+    int indexFirst = hashFirst(key);
+    if (first[indexFirst].occupied && first[indexFirst].key == key) {
+        first[indexFirst].value = value;
+        return true;
+    }
+
+    int indexSecond = hashSecond(key);
+    if (second[indexSecond].occupied && second[indexSecond].key == key) {
+        second[indexSecond].value = value;
+        return true;
+    }
+
+    return false;
+}
+
+void CuckooHashTable::allocateTables(int newCapacity) {
+    capacity = newCapacity;
+    first = new Slot[capacity];
+    second = new Slot[capacity];
+    for (int i = 0; i < capacity; ++i) {
+        first[i].key = 0;
+        first[i].value = 0;
+        first[i].occupied = false;
+        second[i].key = 0;
+        second[i].value = 0;
+        second[i].occupied = false;
+    }
+}
+
+void CuckooHashTable::rehash(int newCapacity) {
+    Slot* oldFirst = first;
+    Slot* oldSecond = second;
+    int oldCapacity = capacity;
+
+    first = 0;
+    second = 0;
+    allocateTables(newCapacity);
+    currentSize = 0;
+
+    for (int i = 0; i < oldCapacity; ++i) {
+        if (oldFirst[i].occupied) {
+            insert(oldFirst[i].key, oldFirst[i].value);
+        }
+        if (oldSecond[i].occupied) {
+            insert(oldSecond[i].key, oldSecond[i].value);
+        }
+    }
+
+    delete[] oldFirst;
+    delete[] oldSecond;
+}
+
+int CuckooHashTable::nextPrime(int value) const {
+    if (value < 2) {
+        return 2;
+    }
+    while (!isPrime(value)) {
+        ++value;
+    }
+    return value;
+}
+
+bool CuckooHashTable::isPrime(int value) const {
     if (value < 2) {
         return false;
     }

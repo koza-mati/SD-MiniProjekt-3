@@ -1,231 +1,231 @@
 # SD-MiniProjekt-3
 
-Projekt z kursu Struktury Danych: tablice mieszajace w C++. Program udostepnia trzy implementacje tablicy mieszajacej, menu konsolowe oraz modul pomiarow wydajnosci zapisywanych do plikow CSV i TXT.
+Projekt z kursu Struktury Danych: tablice mieszające w C++. Program udostępnia trzy warianty tablicy mieszającej (adresowanie otwarte z próbkowaniem liniowym, łańcuchowanie drzewami AVL oraz cuckoo hashing), menu konsolowe oraz moduł pomiarów wydajności zapisywanych do plików CSV i TXT.
 
 ## Cel projektu
 
 Celem projektu jest:
 
-- implementacja tablic mieszajacych przechowujacych pary `key-value`,
-- porownanie trzech sposobow rozwiazywania kolizji,
-- przygotowanie jednej implementacji wykorzystujacej drzewo AVL,
-- obsluga podstawowych operacji przez wspolny interfejs,
-- wykonanie pomiarow czasu dzialania operacji dla roznych rozmiarow danych,
-- zapis i odczyt stanu tablicy z plikow CSV.
+- implementacja tablic mieszających przechowujących pary `key-value`,
+- porównanie trzech sposobów rozwiązywania kolizji,
+- przygotowanie jednej implementacji wykorzystującej drzewo AVL,
+- obsługa podstawowych operacji przez wspólny interfejs,
+- wykonanie pomiarów czasu działania operacji dla różnych rozmiarów danych,
+- zapis i odczyt stanu tablicy z plików CSV.
 
 Zaimplementowane operacje:
 
-- `insert(key, value)` - dodaje nowy element albo aktualizuje wartosc dla istniejacego klucza,
+- `insert(key, value)` - dodaje nowy element albo aktualizuje wartość dla istniejącego klucza,
 - `remove(key)` - usuwa element o podanym kluczu,
-- `find(key, value)` - wyszukuje element po kluczu i zwraca jego wartosc przez referencje,
-- `returnSize()` - zwraca liczbe elementow,
+- `find(key, value)` - wyszukuje element po kluczu i zwraca jego wartość przez referencję,
+- `returnSize()` - zwraca liczbę elementów,
 - `clear()` - usuwa wszystkie elementy,
 - `saveToCSV()` i `loadFromCSV()` - zapis i odczyt danych,
-- `generateRandom()` - wypelnienie struktury losowymi danymi z poziomu menu.
+- `generateRandom()` - wypełnienie struktury losowymi danymi z poziomu menu.
 
 ## Technologie i ograniczenia
 
-Projekt jest napisany w C++17. Wykorzystuje standardowa biblioteke C++ m.in. do strumieni plikowych, pomiaru czasu, generowania liczb losowych, `std::string`, `std::chrono`, `std::random_device`, `std::mt19937` i `std::uniform_int_distribution`.
+Projekt jest napisany w C++17. Wykorzystuje standardową bibliotekę C++ m.in. do strumieni plikowych, pomiaru czasu, generowania liczb losowych, `std::string`, `std::chrono`, `std::random_device`, `std::mt19937` i `std::uniform_int_distribution`.
 
-Rdzen struktur danych jest zaimplementowany samodzielnie. Program nie korzysta z gotowych tablic mieszajacych, takich jak `std::unordered_map`, ani z gotowych drzew, takich jak `std::map` albo `std::set`. Tablice, wpisy, probkowanie oraz drzewa AVL sa zaimplementowane recznie z uzyciem wskaznikow i dynamicznej alokacji pamieci.
+Rdzeń struktur danych jest zaimplementowany samodzielnie. Program nie korzysta z gotowych tablic mieszających, takich jak `std::unordered_map`, ani z gotowych drzew, takich jak `std::map` albo `std::set`. Tablice, wpisy, próbkowanie oraz drzewa AVL są zaimplementowane ręcznie z użyciem wskaźników i dynamicznej alokacji pamięci.
 
-Zarowno klucze, jak i wartosci sa liczbami calkowitymi typu `int`.
+Zarówno klucze, jak i wartości są liczbami całkowitymi typu `int`.
 
 ## Struktura projektu
 
 Katalog `include/` zawiera:
 
-- `hash_tables.hpp` - wspolny interfejs `IHashTable` oraz deklaracje trzech implementacji tablic mieszajacych,
-- `benchmark.hpp` - deklaracje funkcji benchmarkow i funkcji `benchmarkSeed(size, attempt)`.
+- `hash_tables.hpp` - wspólny interfejs `IHashTable` oraz deklaracje trzech implementacji tablic mieszających,
+- `benchmark.hpp` - deklaracje funkcji benchmarków i funkcji `benchmarkSeed(size, attempt)`.
 
 Katalog `src/` zawiera:
 
-- `main.cpp` - punkt startowy programu, menu konsolowe, obsluga CSV z poziomu programu i generowanie danych losowych,
-- `hash_tables.cpp` - implementacje tablic mieszajacych: adresowanie liniowe, adresowanie kwadratowe i kubelki AVL,
-- `benchmark.cpp` - benchmarki operacji `insert` oraz `remove`, zapis wynikow do CSV i TXT.
+- `main.cpp` - punkt startowy programu, menu konsolowe, obsługa CSV z poziomu programu i generowanie danych losowych,
+- `hash_tables.cpp` - implementacje tablic mieszających: adresowanie otwarte, kubełki AVL i cuckoo hashing,
+- `benchmark.cpp` - benchmarki operacji `insert` oraz `remove`, zapis wyników do CSV i TXT.
 
-Pliki w katalogu glownym:
+Pliki w katalogu głównym:
 
 - `Makefile` - prosty plik budowania projektu,
 - `README.md` - opis projektu,
-- `miniprojekt3.exe` - przykladowy artefakt po kompilacji, nie jest wymagany do oceny kodu.
+- `miniprojekt3.exe` - przykładowy artefakt po kompilacji, nie jest wymagany do oceny kodu.
 
-## Wspolny model danych
+## Wspólny model danych
 
-Dane w tablicach mieszajacych sa reprezentowane przez pare:
+Dane w tablicach mieszających są reprezentowane przez parę:
 
-- `key` - klucz calkowity, po ktorym wykonywane jest mieszanie i wyszukiwanie,
-- `value` - wartosc calkowita przypisana do klucza.
+- `key` - klucz całkowity, po którym wykonywane jest mieszanie i wyszukiwanie,
+- `value` - wartość całkowita przypisana do klucza.
 
-Wspolny interfejs `IHashTable` pozwala obslugiwac wszystkie implementacje w taki sam sposob. Dzieki temu menu i benchmarki nie musza znac szczegolow konkretnej struktury. Kazda tablica implementuje te same metody: `insert`, `remove`, `find`, `returnSize`, `clear`, `saveToCSV`, `loadFromCSV` oraz `name`.
+Wspólny interfejs `IHashTable` pozwala obsługiwać wszystkie implementacje w taki sam sposób. Dzięki temu menu i benchmarki nie muszą znać szczegółów konkretnej struktury. Każda tablica implementuje te same metody: `insert`, `remove`, `find`, `returnSize`, `clear`, `saveToCSV`, `loadFromCSV` oraz `name`.
 
-## Funkcja mieszajaca i pojemnosc tablicy
+## Funkcja mieszająca i pojemność tablicy
 
-We wszystkich implementacjach indeks poczatkowy jest wyznaczany przez funkcje:
+We wszystkich implementacjach indeks początkowy jest wyznaczany przez funkcję:
 
 ```text
 abs(key) % capacity
 ```
 
-Pojemnosc `capacity` oznacza liczbe kubelkow lub komorek w aktualnej tablicy. Nie jest tym samym co liczba elementow. Liczbe zapisanych par `key-value` przechowuje `currentSize`, a zwraca ja metoda `returnSize()`.
+Pojemność `capacity` oznacza liczbę kubełków lub komórek w aktualnej tablicy. Nie jest tym samym co liczba elementów. Liczbę zapisanych par `key-value` przechowuje `currentSize`, a zwraca ją metoda `returnSize()`.
 
-Pojemnosc jest zwiekszana automatycznie przez `rehash`, gdy tablica zaczyna byc zbyt wypelniona. Nowa pojemnosc jest dobierana jako kolejna liczba pierwsza, co zmniejsza ryzyko niekorzystnego rozkladania sie kluczy.
+Pojemność jest zwiększana automatycznie przez `rehash`, gdy tablica zaczyna być zbyt wypełniona. Nowa pojemność jest dobierana jako kolejna liczba pierwsza, co zmniejsza ryzyko niekorzystnego rozkładania się kluczy.
 
-## Implementacja: adresowanie liniowe
+## Implementacja: adresowanie otwarte
 
-`OpenAddressingHashTable` w trybie `Linear` implementuje tablice mieszajaca z adresowaniem otwartym i probkowaniem liniowym.
+`OpenAddressingHashTable` implementuje tablicę mieszającą z adresowaniem otwartym i próbkowaniem liniowym. Wszystkie elementy przechowywane są bezpośrednio w jednej tablicy, a kolizje rozwiązywane są przez szukanie kolejnej wolnej komórki.
 
-Przy kolizji sprawdzane sa kolejne komorki:
+Przy kolizji sprawdzane są kolejne komórki:
 
 ```text
 (hash(key) + i) % capacity
 ```
 
-Komorka moze miec jeden z trzech stanow:
+Komórka może mieć jeden z trzech stanów:
 
-- `Empty` - komorka nigdy nie byla uzyta,
-- `Occupied` - komorka przechowuje aktywny element,
-- `Deleted` - komorka zawierala element, ale zostal on usuniety.
+- `Empty` - komórka nigdy nie była użyta,
+- `Occupied` - komórka przechowuje aktywny element,
+- `Deleted` - komórka zawierała element, ale został on usunięty.
 
-Stan `Deleted` jest potrzebny, poniewaz przy adresowaniu otwartym usuniecie elementu nie moze przerwac lancucha probkowania. Gdyby komorka po usunieciu byla traktowana jak calkowicie pusta, wyszukiwanie niektorych elementow mogloby zakonczyc sie za wczesnie.
+Stan `Deleted` jest potrzebny, ponieważ przy adresowaniu otwartym usunięcie elementu nie może przerwać łańcucha próbkowania. Gdyby komórka po usunięciu była traktowana jak całkowicie pusta, wyszukiwanie niektórych elementów mogłoby zakończyć się za wcześnie.
 
-Dzialanie operacji:
+Działanie operacji:
 
-- `insert` szuka miejsca liniowo, dodaje nowy klucz albo aktualizuje istniejacy,
-- `remove` znajduje komorke i oznacza ja jako `Deleted`,
-- `find` przechodzi po sekwencji probkowania do znalezienia klucza albo pustej komorki,
-- `clear` ustawia wszystkie komorki jako `Empty`.
+- `insert` szuka miejsca liniowo, dodaje nowy klucz albo aktualizuje istniejący,
+- `remove` znajduje komórkę i oznacza ją jako `Deleted`,
+- `find` przechodzi po sekwencji próbkowania do znalezienia klucza albo pustej komórki,
+- `clear` ustawia wszystkie komórki jako `Empty`,
+- `rehash` tworzy większą tablicę i wstawia wszystkie aktywne elementy od nowa, gdy wypełnienie przekroczy 0,7 pojemności.
 
-Zlozonosc srednia:
-
-- `insert` - `O(1)`,
-- `remove` - `O(1)`,
-- `find` - `O(1)`,
-- `returnSize` - `O(1)`,
-- `saveToCSV` - `O(n + capacity)`,
-- `loadFromCSV` - srednio `O(n)`.
-
-W najgorszym przypadku operacje moga miec zlozonosc `O(n)`, gdy wystapi wiele kolizji.
-
-## Implementacja: adresowanie kwadratowe
-
-`OpenAddressingHashTable` w trybie `Quadratic` implementuje tablice mieszajaca z adresowaniem otwartym i probkowaniem kwadratowym.
-
-Przy kolizji sprawdzane sa komorki wedlug wzoru:
-
-```text
-(hash(key) + i + i * i) % capacity
-```
-
-Probowanie kwadratowe ogranicza tworzenie dlugich ciaglych blokow zajetych komorek, ktore czesto pojawiaja sie przy probkowaniu liniowym. Program utrzymuje nizsze wypelnienie tej tablicy, aby sekwencja probkowania miala wieksza szanse znalezc wolna komorke.
-
-Dzialanie operacji jest takie samo jak w wariancie liniowym:
-
-- `insert` dodaje lub aktualizuje element,
-- `remove` oznacza komorke jako `Deleted`,
-- `find` wyszukuje element po sekwencji probkowania,
-- `rehash` tworzy wieksza tablice i wstawia wszystkie aktywne elementy od nowa.
-
-Zlozonosc srednia:
+Złożoność średnia:
 
 - `insert` - `O(1)`,
 - `remove` - `O(1)`,
 - `find` - `O(1)`,
 - `returnSize` - `O(1)`,
 - `saveToCSV` - `O(n + capacity)`,
-- `loadFromCSV` - srednio `O(n)`.
+- `loadFromCSV` - średnio `O(n)`.
 
-W najgorszym przypadku operacje moga miec zlozonosc `O(n)`.
+W najgorszym przypadku operacje mogą mieć złożoność `O(n)`, gdy wystąpi wiele kolizji.
 
-## Implementacja: kubelki z drzewami AVL
+## Implementacja: kubełki z drzewami AVL
 
-`AVLHashTable` implementuje tablice mieszajaca z osobnymi kubelkami. Kazdy kubelek jest niezaleznym drzewem AVL. Oznacza to, ze funkcja mieszajaca wybiera kubelek, a kolizje w tym samym kubelku sa obslugiwane przez zbalansowane drzewo binarne.
+`AVLHashTable` implementuje tablicę mieszającą z osobnymi kubełkami. Każdy kubełek jest niezależnym drzewem AVL. Oznacza to, że funkcja mieszająca wybiera kubełek, a kolizje w tym samym kubełku są obsługiwane przez zbalansowane drzewo binarne.
 
-Kazdy wezel AVL przechowuje:
+Każdy węzeł AVL przechowuje:
 
 - `key` - klucz elementu,
-- `value` - wartosc elementu,
-- `height` - wysokosc wezla potrzebna do balansowania,
-- `left` i `right` - wskazniki na lewe i prawe poddrzewo.
+- `value` - wartość elementu,
+- `height` - wysokość węzła potrzebna do balansowania,
+- `left` i `right` - wskaźniki na lewe i prawe poddrzewo.
 
-Drzewo AVL pilnuje roznicy wysokosci lewego i prawego poddrzewa. Po operacjach `insert` i `remove` wykonywane sa rotacje:
+Drzewo AVL pilnuje różnicy wysokości lewego i prawego poddrzewa. Po operacjach `insert` i `remove` wykonywane są rotacje:
 
 - rotacja w prawo,
 - rotacja w lewo,
 - rotacja lewo-prawo,
 - rotacja prawo-lewo.
 
-Dzieki temu pojedynczy kubelek nie degeneruje sie do listy nawet wtedy, gdy wiele kluczy trafi do tego samego indeksu.
+Dzięki temu pojedynczy kubełek nie degeneruje się do listy nawet wtedy, gdy wiele kluczy trafi do tego samego indeksu.
 
-Dzialanie operacji:
+Działanie operacji:
 
-- `insert` wybiera kubelek i wstawia element do drzewa AVL,
-- `remove` usuwa wezel z drzewa AVL i przywraca balans,
-- `find` wyszukuje klucz w drzewie wybranego kubelka,
-- `clear` zwalnia wszystkie wezly we wszystkich kubelkach,
-- `rehash` tworzy nowa tablice kubelkow i przenosi elementy do nowych drzew.
+- `insert` wybiera kubełek i wstawia element do drzewa AVL,
+- `remove` usuwa węzeł z drzewa AVL i przywraca balans,
+- `find` wyszukuje klucz w drzewie wybranego kubełka,
+- `clear` zwalnia wszystkie węzły we wszystkich kubełkach,
+- `rehash` tworzy nową tablicę kubełków i przenosi elementy do nowych drzew.
 
-Zlozonosc:
+Złożoność:
 
-- `insert` - srednio `O(log k)` w kubelku, gdzie `k` to liczba elementow w danym kubelku,
-- `remove` - srednio `O(log k)`,
-- `find` - srednio `O(log k)`,
+- `insert` - średnio `O(log k)` w kubełku, gdzie `k` to liczba elementów w danym kubełku,
+- `remove` - średnio `O(log k)`,
+- `find` - średnio `O(log k)`,
 - `returnSize` - `O(1)`,
 - `saveToCSV` - `O(n)`,
-- `loadFromCSV` - srednio `O(n log k)`.
+- `loadFromCSV` - średnio `O(n log k)`.
 
-Przy dobrym rozkladzie funkcji mieszajacej `k` jest male, wiec operacje sa bardzo szybkie. Przy duzej liczbie kolizji AVL nadal utrzymuje uporzadkowana i zbalansowana strukture.
+Przy dobrym rozkładzie funkcji mieszającej `k` jest małe, więc operacje są bardzo szybkie. Przy dużej liczbie kolizji AVL nadal utrzymuje uporządkowaną i zbalansowaną strukturę.
+
+## Implementacja: cuckoo hashing
+
+`CuckooHashTable` implementuje tablicę mieszającą w schemacie _cuckoo hashing_. Jest to wariant adresowania otwartego o odmiennej zasadzie działania niż próbkowanie liniowe: zamiast jednej tablicy i sekwencji próbkowania używane są dwie tablice oraz dwie niezależne funkcje mieszające.
+
+Każdy klucz ma dokładnie dwie dozwolone pozycje:
+
+- `hashFirst(key)` - pozycja w pierwszej tablicy,
+- `hashSecond(key)` - pozycja w drugiej tablicy.
+
+Dzięki temu operacje `find` i `remove` sprawdzają co najwyżej dwie komórki, niezależnie od wypełnienia struktury, co daje gwarantowany koszt `O(1)` w najgorszym przypadku.
+
+Działanie operacji:
+
+- `insert` umieszcza element w pierwszej tablicy. Jeśli komórka jest zajęta, dotychczasowy element zostaje "wyrzucony" (ang. _kick_) i przeniesiony na swoją alternatywną pozycję w drugiej tablicy. Proces przenoszenia powtarza się naprzemiennie między tablicami aż do znalezienia wolnej komórki,
+- jeżeli liczba przeniesień przekroczy ustalony limit (`maxKicks`, rosnący logarytmicznie z pojemnością), oznacza to powstanie cyklu i wykonywany jest `rehash` z większą pojemnością oraz ponowne wstawienie elementu,
+- `remove` sprawdza obie pozycje klucza i zwalnia właściwą komórkę,
+- `find` sprawdza obie pozycje klucza.
+
+Aby utrzymać skuteczność przenoszeń, struktura jest powiększana przez `rehash`, gdy łączne wypełnienie obu tablic zbliża się do połowy ich pojemności.
+
+Złożoność średnia:
+
+- `insert` - zamortyzowane `O(1)`,
+- `remove` - `O(1)` w najgorszym przypadku,
+- `find` - `O(1)` w najgorszym przypadku,
+- `returnSize` - `O(1)`,
+- `saveToCSV` - `O(capacity)`,
+- `loadFromCSV` - średnio `O(n)`.
 
 ## Menu programu
 
-Po uruchomieniu programu dostepne jest menu glowne:
+Po uruchomieniu programu dostępne jest menu główne:
 
-1. Tablica mieszajaca - adresowanie liniowe.
-2. Tablica mieszajaca - adresowanie kwadratowe.
-3. Tablica mieszajaca - lancuchowanie drzewami AVL.
-4. Badania wydajnosciowe i zapis CSV.
-0. Wyjscie.
+1. Tablica mieszająca - adresowanie otwarte.
+2. Tablica mieszająca - łańcuchowanie drzewami AVL.
+3. Tablica mieszająca - cuckoo hashing.
+4. Badania wydajnościowe i zapis CSV.
+0. Wyjście.
 
-W menu konkretnej struktury mozna:
+W menu konkretnej struktury można:
 
-- dodac albo zaktualizowac element,
-- usunac element po kluczu,
-- wyszukac element po kluczu,
-- sprawdzic rozmiar,
-- zapisac aktualny stan do CSV,
-- wczytac dane z pliku CSV,
-- wygenerowac losowe dane,
-- wyczyscic strukture.
+- dodać albo zaktualizować element,
+- usunąć element po kluczu,
+- wyszukać element po kluczu,
+- sprawdzić rozmiar,
+- zapisać aktualny stan do CSV,
+- wczytać dane z pliku CSV,
+- wygenerować losowe dane,
+- wyczyścić strukturę.
 
-Po operacjach modyfikujacych program automatycznie zapisuje stan pomocniczy:
+Po operacjach modyfikujących program automatycznie zapisuje stan pomocniczy:
 
-- `hash_liniowa_autosave.csv` dla adresowania liniowego,
-- `hash_kwadratowa_autosave.csv` dla adresowania kwadratowego,
-- `hash_avl_autosave.csv` dla tablicy z kubelkami AVL.
+- `hash_otwarte_autosave.csv` dla adresowania otwartego,
+- `hash_avl_autosave.csv` dla tablicy z kubełkami AVL,
+- `hash_cuckoo_autosave.csv` dla cuckoo hashing.
 
-Reczny zapis z menu tworzy:
+Ręczny zapis z menu tworzy:
 
-- `hash_liniowa.csv`,
-- `hash_kwadratowa.csv`,
-- `hash_avl.csv`.
+- `hash_otwarte.csv`,
+- `hash_avl.csv`,
+- `hash_cuckoo.csv`.
 
 ## Generowanie danych
 
-Funkcja `generateRandom()` uzywana w menu czysci aktualna strukture i tworzy podana liczbe nowych elementow.
+Funkcja `generateRandom()` używana w menu czyści aktualną strukturę i tworzy podaną liczbę nowych elementów.
 
-Klucze i wartosci sa losowane z zakresu:
+Klucze i wartości są losowane z zakresu:
 
 ```text
 1 .. count * 10 + 100
 ```
 
-Do generowania uzywane sa `std::random_device`, `std::mt19937` i `std::uniform_int_distribution`.
+Do generowania używane są `std::random_device`, `std::mt19937` i `std::uniform_int_distribution`.
 
-Poniewaz klucz w tablicy mieszajacej musi byc unikalny, program losuje kolejne pary do momentu, az struktura osiagnie zadany rozmiar. Jesli wylosowany klucz juz istnieje, operacja `insert` aktualizuje wartosc, ale rozmiar sie nie zwieksza, wiec losowanie trwa dalej.
+Ponieważ klucz w tablicy mieszającej musi być unikalny, program losuje kolejne pary do momentu, aż struktura osiągnie zadany rozmiar. Jeśli wylosowany klucz już istnieje, operacja `insert` aktualizuje wartość, ale rozmiar się nie zwiększa, więc losowanie trwa dalej.
 
 ## Zapis i odczyt CSV
 
-Wszystkie implementacje zapisuja pliki w formacie:
+Wszystkie implementacje zapisują pliki w formacie:
 
 ```csv
 key,value
@@ -234,34 +234,34 @@ key,value
 15,450
 ```
 
-Metoda `loadFromCSV()` odczytuje kolejne rekordy `key,value`, a nastepnie odbudowuje strukture przez `insert`. Oznacza to, ze dane po wczytaniu sa poprawne logicznie, ale fizyczne rozmieszczenie elementow w tablicy moze byc inne niz przed zapisem, poniewaz zalezy od aktualnej pojemnosci tablicy i procesu `rehash`.
+Metoda `loadFromCSV()` odczytuje kolejne rekordy `key,value`, a następnie odbudowuje strukturę przez `insert`. Oznacza to, że dane po wczytaniu są poprawne logicznie, ale fizyczne rozmieszczenie elementów w tablicy może być inne niż przed zapisem, ponieważ zależy od aktualnej pojemności tablicy i procesu `rehash`.
 
-## Badania wydajnosciowe
+## Badania wydajnościowe
 
-Benchmarki sa uruchamiane z menu glownego przez opcje `Badania wydajnosciowe i zapis CSV`.
+Benchmarki są uruchamiane z menu głównego przez opcję `Badania wydajnościowe i zapis CSV`.
 
 Mierzone operacje:
 
 - `insert`,
 - `remove`.
 
-Rozmiary struktur uzywane w benchmarkach:
+Rozmiary struktur używane w benchmarkach:
 
 ```text
 10000, 20000, 40000, 80000, 100000, 160000, 320000, 640000
 ```
 
-Dla kazdego rozmiaru kazda operacja jest mierzona 100 razy. Przed pojedynczym pomiarem tworzona jest nowa struktura wypelniona tym samym zestawem danych dla danej proby. Dane testowe sa generowane deterministycznie na podstawie funkcji `benchmarkSeed(size, attempt)`.
+Dla każdego rozmiaru każda operacja jest mierzona 100 razy. Przed pojedynczym pomiarem tworzona jest nowa struktura wypełniona tym samym zestawem danych dla danej próby. Dane testowe są generowane deterministycznie na podstawie funkcji `benchmarkSeed(size, attempt)`.
 
 Pliki wynikowe:
 
-- `pomiary.txt` - zbiorcze zestawienie wynikow,
-- `benchmark_liniowa.csv` - wyniki dla adresowania liniowego,
-- `benchmark_kwadratowa.csv` - wyniki dla adresowania kwadratowego,
-- `benchmark_avl.csv` - wyniki dla tablicy z kubelkami AVL,
-- `seedy_100000.txt` - lista seedow dla rozmiaru 100000.
+- `pomiary.txt` - zbiorcze zestawienie wyników,
+- `benchmark_otwarte.csv` - wyniki dla adresowania otwartego,
+- `benchmark_avl.csv` - wyniki dla tablicy z kubełkami AVL,
+- `benchmark_cuckoo.csv` - wyniki dla cuckoo hashing,
+- `seedy_100000.txt` - lista seedów dla rozmiaru 100000.
 
-Format plikow CSV z benchmarkami:
+Format plików CSV z benchmarkami:
 
 ```csv
 Operation,Size,AverageTime_ns
@@ -271,19 +271,19 @@ remove,10000,456
 
 ## Kompilacja
 
-Przykladowa komenda kompilacji:
+Przykładowa komenda kompilacji:
 
 ```bash
 g++ -std=c++17 -Wall -Wextra -O2 src/main.cpp src/hash_tables.cpp src/benchmark.cpp -o miniprojekt3.exe
 ```
 
-W srodowisku MSYS2/MinGW mozna uzyc:
+W środowisku MSYS2/MinGW można użyć:
 
 ```bash
 /mingw64/bin/g++ -std=c++17 -Wall -Wextra -O2 src/main.cpp src/hash_tables.cpp src/benchmark.cpp -o miniprojekt3.exe
 ```
 
-Jesli dostepny jest `make`, projekt mozna zbudowac tak:
+Jeśli dostępny jest `make`, projekt można zbudować tak:
 
 ```bash
 make
@@ -297,7 +297,7 @@ Windows:
 miniprojekt3.exe
 ```
 
-Git Bash / MSYS / podobne srodowisko:
+Git Bash / MSYS / podobne środowisko:
 
 ```bash
 ./miniprojekt3.exe
@@ -305,4 +305,4 @@ Git Bash / MSYS / podobne srodowisko:
 
 ## Podsumowanie
 
-Projekt realizuje trzy warianty tablic mieszajacych: adresowanie liniowe, adresowanie kwadratowe oraz tablice z kubelkami opartymi o drzewa AVL. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porownujace koszty operacji `insert` i `remove` dla duzych zestawow danych.
+Projekt realizuje trzy warianty tablic mieszających: adresowanie otwarte (z próbkowaniem liniowym), tablice z kubełkami opartymi o drzewa AVL oraz cuckoo hashing. Zawiera menu konsolowe, losowe generowanie danych, zapis i odczyt CSV oraz benchmarki porównujące koszty operacji `insert` i `remove` dla dużych zestawów danych.
